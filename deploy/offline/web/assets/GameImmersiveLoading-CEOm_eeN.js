@@ -1,0 +1,1 @@
+import{t as e}from"./jsx-runtime-DlWfbcA0.js";import{t}from"./GameLoadingState-C8rvDxSw.js";var n=e();function r({message:e=`天机流转中……`}){return(0,n.jsx)(`div`,{className:`app-safe-area-page h-full min-h-[100svh] bg-[#111713]`,children:(0,n.jsx)(t,{message:e,variant:`immersive`})})}export{r as t};

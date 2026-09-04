@@ -1,0 +1,78 @@
+/*
+ * SkillBlueprintComposer:  rolledAffixes  composition decision active_skill CreationBlueprint
+ *  CompositionRuleSet  AbilityConfig
+ */
+import { AffixEffectTranslator } from '../affixes/AffixEffectTranslator';
+import { AffixRegistry } from '../affixes/AffixRegistry';
+import { estimateBalanceMetrics } from '../balancing/PBU';
+import { CreationSession } from '../CreationSession';
+import { SkillProductModel } from '../models';
+import { CreationBlueprint } from '../types';
+import { CompositionRuleSet } from '../rules/composition/CompositionRuleSet';
+import { CompositionFacts } from '../rules/contracts/CompositionFacts';
+import { SkillProjectionPolicy } from '../rules/contracts/CompositionDecision';
+import { buildCompositionFacts } from './shared';
+import { buildAbilitySlug, ProductBlueprintComposer } from './types';
+
+/**
+ *  Composer
+ *  active_skill
+ *  CompositionRuleSet rules/composition/
+ */
+export class SkillBlueprintComposer implements ProductBlueprintComposer {
+  private readonly compositionRuleSet: CompositionRuleSet;
+
+  constructor(
+    private readonly registry: AffixRegistry,
+    translator: AffixEffectTranslator,
+  ) {
+    this.compositionRuleSet = new CompositionRuleSet(registry, translator);
+  }
+
+  compose(session: CreationSession): CreationBlueprint {
+    const { rolledAffixes, input } = session.state;
+    const facts: CompositionFacts = buildCompositionFacts(session, 'skill', this.registry);
+    const projectionQuality = facts.projectionQualityProfile.quality;
+
+    const decision = this.compositionRuleSet.evaluate(facts);
+    const policy = decision.projectionPolicy as SkillProjectionPolicy | undefined;
+    if (!policy || policy.kind !== 'active_skill') {
+      throw new Error('CompositionRuleSet did not produce a skill projection policy');
+    }
+
+    const productModel: SkillProductModel = {
+      productType: 'skill',
+      slug: buildAbilitySlug(input.slugSeed ?? session.id, input.productType),
+      name: decision.name,
+      description: decision.description,
+      projectionQuality,
+      projectionBasisEnergy: facts.projectionQualityProfile.basisEnergy,
+      ...(facts.projectionContext
+        ? { projectionPacingContext: facts.projectionContext }
+        : {}),
+      outcomeTags: decision.outcomeTags,
+      affixes: rolledAffixes,
+      balanceMetrics: estimateBalanceMetrics(
+        rolledAffixes,
+        projectionQuality,
+      ),
+      battleProjection: {
+        projectionKind: 'active_skill',
+        abilityTags: policy.abilityTags,
+        mpCost: policy.mpCost,
+        cooldown: policy.cooldown,
+        priority: policy.priority,
+        targetPolicy: policy.targetPolicy,
+        effects: policy.effects,
+        ...(policy.listeners && policy.listeners.length > 0
+          ? { listeners: policy.listeners }
+          : {}),
+      },
+    };
+
+    return {
+      productType: productModel.productType,
+      productModel,
+    };
+  }
+}

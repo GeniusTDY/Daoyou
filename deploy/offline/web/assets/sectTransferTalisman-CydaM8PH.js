@@ -1,0 +1,1 @@
+var e=`sect_transfer`,t=`欺天符`;export{e as n,t};

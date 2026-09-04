@@ -1,0 +1,430 @@
+/**
+ *
+ *
+ *  +
+ *  breakthroughEngine.ts  calculateBreakthroughChance
+ */
+
+import {
+  REALM_STAGE_VALUES,
+  REALM_VALUES,
+  type RealmStage,
+  type RealmType,
+} from '@shared/types/constants';
+import type {
+  CultivationProgress,
+  Cultivator,
+} from '@shared/types/cultivator';
+
+type BreakthroughCultivator = Pick<
+  Cultivator,
+  | 'condition'
+  | 'cultivation_progress'
+  | 'realm'
+  | 'realm_stage'
+  | 'pre_heaven_fates'
+>;
+import {
+  evaluateFateContext,
+} from '@shared/lib/fates';
+import {
+  getBreakthroughPenalty,
+  isConditionStatusActive,
+} from '@shared/lib/condition';
+import {
+  getBreakthroughFocusBonus,
+} from '@shared/lib/pillEffectScaling';
+import type {
+  ConditionStatusInstance,
+  ConditionStatusKey,
+} from '@shared/types/condition';
+import { format } from 'd3-format';
+import { calculateExpProgress, getBreakthroughType, isBottleneckReached } from './cultivationUtils';
+
+const REALM_ORDER = [...REALM_VALUES];
+const STAGE_ORDER = [...REALM_STAGE_VALUES];
+
+const LIFESPAN_BONUS_BY_REALM: Partial<Record<RealmType, number>> = {
+  筑基: 200,
+  金丹: 500,
+  元婴: 1200,
+  化神: 2000,
+  炼虚: 3000,
+  合体: 4000,
+  大乘: 5000,
+  渡劫: 8000,
+};
+
+
+export interface BreakthroughModifiers {
+  baseChance: number; 
+  realmDifficulty: number; 
+  progressMultiplier: number; 
+  insightMultiplier: number; 
+  demonPenalty: number; 
+  adjustedBaseChance: number; 
+  fateBonus: number; 
+  pillBonus: number; 
+  toxicityPenalty: number; 
+  finalChance: number; 
+}
+
+
+export interface BreakthroughChanceResult {
+  chance: number; 
+  modifiers: BreakthroughModifiers; 
+  breakthroughType: 'forced' | 'normal' | 'perfect'; 
+  nextStage: { realm: RealmType; stage: RealmStage } | null; 
+  canAttempt: boolean; 
+  recommendation: string; 
+}
+
+function getActiveStatus(
+  cultivator: BreakthroughCultivator,
+  statusKey: ConditionStatusKey,
+): ConditionStatusInstance | null {
+  return (
+    cultivator.condition?.statuses.find(
+      (status) => status.key === statusKey && isConditionStatusActive(status),
+    ) ?? null
+  );
+}
+
+/**
+ *
+ *
+ * @param cultivator
+ * @returns
+ */
+export function calculateBreakthroughChance(
+  cultivator: BreakthroughCultivator,
+): BreakthroughChanceResult {
+  
+  const progress = cultivator.cultivation_progress;
+  if (!progress) {
+    throw new Error('角色缺少修为进度数据');
+  }
+
+  // 60%
+  const expProgress = calculateExpProgress(progress);
+  if (expProgress < 60) {
+    return createInsufficientExpResult(progress);
+  }
+
+  
+  const breakthroughType = getBreakthroughType(progress);
+
+  
+  const nextStage = getNextStage(cultivator.realm, cultivator.realm_stage);
+  if (!nextStage) {
+    return createMaxRealmResult();
+  }
+
+  const isMajorBreakthrough = nextStage.realm !== cultivator.realm;
+  const breakthroughFocusStatus = getActiveStatus(
+    cultivator,
+    'breakthrough_focus',
+  );
+  const clearMindStatus = getActiveStatus(
+    cultivator,
+    'clear_mind',
+  );
+
+  // 1.
+  const baseChance = getBaseChanceByType(breakthroughType, isMajorBreakthrough);
+
+  // 2.
+  const realmDifficulty = calculateRealmDifficulty(cultivator.realm);
+
+  // 3.
+  const progressMultiplier = calculateProgressMultiplier(expProgress);
+
+  // 4.
+  const insightMultiplier = calculateInsightMultiplier(
+    progress.comprehension_insight,
+  );
+
+  // 5.
+  const demonPenalty = progress.inner_demon
+    ? clearMindStatus
+      ? 1
+      : isMajorBreakthrough
+        ? 0.9
+        : 0.95
+    : 1.0;
+  const fateContext = evaluateFateContext(cultivator.pre_heaven_fates ?? []);
+  const fateBonus = fateContext.breakthroughChanceBonus;
+  const pillBonus = breakthroughFocusStatus
+    ? getBreakthroughFocusBonus(breakthroughFocusStatus)
+    : 0;
+  const toxicityPenalty = getBreakthroughPenalty(
+    cultivator.condition,
+    fateContext.toxicityPenaltyMultiplier,
+  );
+  const adjustedBaseChance =
+    baseChance *
+    realmDifficulty *
+    progressMultiplier *
+    insightMultiplier *
+    demonPenalty;
+
+  
+  const finalChance = Math.min(
+    0.95,
+    Math.max(
+      0.05,
+      adjustedBaseChance + fateBonus + pillBonus - toxicityPenalty,
+    ),
+  );
+
+  
+  const recommendation = generateRecommendation(
+    breakthroughType,
+    expProgress,
+    progress.comprehension_insight,
+    finalChance,
+    isBottleneckReached(progress),
+  );
+
+  return {
+    chance: finalChance,
+    modifiers: {
+      baseChance,
+      realmDifficulty,
+      progressMultiplier,
+      insightMultiplier,
+      demonPenalty,
+      adjustedBaseChance,
+      fateBonus,
+      pillBonus,
+      toxicityPenalty,
+      finalChance,
+    },
+    breakthroughType,
+    nextStage,
+    canAttempt: true,
+    recommendation,
+  };
+}
+
+export { LIFESPAN_BONUS_BY_REALM };
+
+
+
+export function getNextStage(
+  realm: RealmType,
+  stage: RealmStage,
+): { realm: RealmType; stage: RealmStage } | null {
+  const stageIndex = STAGE_ORDER.indexOf(stage);
+
+  if (stageIndex === -1) return null;
+
+  
+  if (stageIndex < STAGE_ORDER.length - 1) {
+    return { realm, stage: STAGE_ORDER[stageIndex + 1] };
+  }
+
+  
+  const realmIndex = REALM_ORDER.indexOf(realm);
+  if (realmIndex === -1 || realmIndex >= REALM_ORDER.length - 1) {
+    return null; 
+  }
+
+  return { realm: REALM_ORDER[realmIndex + 1], stage: '初期' };
+}
+
+/**
+ *
+ *
+ * 25% / 12%
+ * 48% / 28%
+ * 65% / 51%
+ */
+function getBaseChanceByType(
+  type: 'forced' | 'normal' | 'perfect',
+  isMajor: boolean,
+): number {
+  const rates = {
+    forced: { minor: 0.25, major: 0.12 },
+    normal: { minor: 0.48, major: 0.28 },
+    perfect: { minor: 0.65, major: 0.51 },
+  };
+
+  return isMajor ? rates[type].major : rates[type].minor;
+}
+
+/**
+ *
+ *
+ *
+ * 1.0
+ * 0.85
+ * 0.7225
+ * 0.6141
+ * ...
+ */
+function calculateRealmDifficulty(realm: RealmType): number {
+  const realmIndex = REALM_ORDER.indexOf(realm);
+  // 0.85
+  return Math.pow(0.85, realmIndex);
+}
+
+/**
+ *
+ *
+ * 60-69%: 0.6
+ * 70-79%: 0.8
+ * 80-89%: 0.95
+ * 90-99%: 1.1
+ * 100%:   1.25
+ */
+function calculateProgressMultiplier(progress: number): number {
+  if (progress >= 100) return 1.25;
+  if (progress >= 90) return 1.1;
+  if (progress >= 80) return 0.95;
+  if (progress >= 70) return 0.8;
+  return 0.6; // 60-69%
+}
+
+/**
+ *
+ *
+ *
+ * 1.0 + ( / 100) × 0.25
+ *
+ * 0  1.0
+ * 50 1.125
+ * 1001.25
+ */
+function calculateInsightMultiplier(insight: number): number {
+  return 1.0 + (insight / 100) * 0.25;
+}
+
+
+function generateRecommendation(
+  type: 'forced' | 'normal' | 'perfect',
+  expProgress: number,
+  insight: number,
+  finalChance: number,
+  bottleneck: boolean,
+): string {
+  
+  if (finalChance >= 0.8) {
+    return '成功率极高，可放心突破！';
+  }
+
+  if (finalChance >= 0.6) {
+    return '成功率较高，值得一试。';
+  }
+
+  if (finalChance >= 0.4) {
+    if (type === 'forced') {
+      return '强行突破风险较大，建议继续积累修为。';
+    }
+    return '成功率一般，可尝试突破或继续积累。';
+  }
+
+  
+  const suggestions: string[] = [];
+
+  if (expProgress < 100) {
+    suggestions.push('修为未满');
+  }
+
+  if (insight < 50) {
+    suggestions.push('感悟不足');
+  }
+
+  if (bottleneck) {
+    suggestions.push('处于瓶颈期，建议通过副本、战斗提升感悟');
+  }
+
+  if (suggestions.length > 0) {
+    return `成功率偏低（${suggestions.join('、')}），建议继续积累后再尝试。`;
+  }
+
+  return '成功率较低，请谨慎决策。';
+}
+
+
+function createInsufficientExpResult(
+  progress: CultivationProgress,
+): BreakthroughChanceResult {
+  return {
+    chance: 0,
+    modifiers: {
+      baseChance: 0,
+      realmDifficulty: 0,
+      progressMultiplier: 0,
+      insightMultiplier: 0,
+      demonPenalty: 0,
+      adjustedBaseChance: 0,
+      fateBonus: 0,
+      pillBonus: 0,
+      toxicityPenalty: 0,
+      finalChance: 0,
+    },
+    breakthroughType: 'forced',
+    nextStage: null,
+    canAttempt: false,
+    recommendation: `修为不足，需达到60%以上才可尝试突破（当前${calculateExpProgress(progress)}%）`,
+  };
+}
+
+
+function createMaxRealmResult(): BreakthroughChanceResult {
+  return {
+    chance: 0,
+    modifiers: {
+      baseChance: 0,
+      realmDifficulty: 0,
+      progressMultiplier: 0,
+      insightMultiplier: 0,
+      demonPenalty: 0,
+      adjustedBaseChance: 0,
+      fateBonus: 0,
+      pillBonus: 0,
+      toxicityPenalty: 0,
+      finalChance: 0,
+    },
+    breakthroughType: 'forced',
+    nextStage: null,
+    canAttempt: false,
+    recommendation: '已达最高境界，无法继续突破',
+  };
+}
+
+
+export function getBreakthroughChanceExplanation(
+  result: BreakthroughChanceResult,
+): string {
+  if (!result.canAttempt) {
+    return result.recommendation;
+  }
+
+  const { modifiers, breakthroughType } = result;
+  const typeLabels = {
+    forced: '强行突破',
+    normal: '常规突破',
+    perfect: '圆满突破',
+  };
+
+  return `
+【突破类型】${typeLabels[breakthroughType]}
+【最终成功率】${format('.1%')(modifiers.finalChance)}
+
+【各项系数】
+• 基础成功率：${format('.0%')(modifiers.baseChance)}
+• 境界难度：×${format('.2f')(modifiers.realmDifficulty)}
+• 修为进度：×${format('.2f')(modifiers.progressMultiplier)}
+• 感悟加成：×${format('.2f')(modifiers.insightMultiplier)}
+${modifiers.demonPenalty < 1.0 ? `• 心魔惩罚：×${format('.2f')(modifiers.demonPenalty)}\n` : ''}
+• 综合基础成功率：${format('.1%')(modifiers.adjustedBaseChance)}
+• 命格机缘：${format('+.1%')(modifiers.fateBonus)}
+• 破境药力：${format('+.1%')(modifiers.pillBonus)}
+• 丹毒惩罚：-${format('.1%')(modifiers.toxicityPenalty)}
+【建议】${result.recommendation}
+  `.trim();
+}
+
+// ====================  ====================

@@ -1,0 +1,1 @@
+import{t as e}from"./jsx-runtime-DlWfbcA0.js";import{t}from"./components-DR0_wHGM.js";var n=e();function r(){return(0,n.jsx)(t,{to:`/game/sect`,replace:!0})}export{r as default};

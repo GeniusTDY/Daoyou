@@ -1,0 +1,1 @@
+import{B as e,R as t}from"./utils-BgARXyzi.js";import{l as n,y as r}from"./player-prinI9eD.js";var i=e(t(),1);function a(e,t){let a=(0,i.useMemo)(()=>({status:t}),[t]),o=n(r,a,!!e);return{tasks:o.data,loading:o.loading,error:o.error,reload:o.reload}}export{a as t};

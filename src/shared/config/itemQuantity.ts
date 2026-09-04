@@ -1,0 +1,2 @@
+
+export const MAX_PLAYER_ITEM_QUANTITY = 99;
