@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>万界道友 · 本地仓库 vs GitHub 上游</title>
+<style>
+  :root{
+    --ink:#2b2823;
+    --ink-soft:#6f6a60;
+    --line:#e6e0d2;
+    --paper:#faf7ef;
+    --card:#fffdf7;
+    --local-bg:#eaf4ea;
+    --local-line:#b7d9b5;
+    --local-text:#2e6b35;
+    --remote-bg:#fdf1e6;
+    --remote-line:#ecc9a3;
+    --remote-text:#9a5b1d;
+    --common-bg:#f1efe9;
+    --common-text:#5b554a;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:760px;margin:0 auto;padding:0 16px 48px}
+
+  /* header */
+  header{padding:34px 16px 20px;text-align:center}
+  .kicker{font-size:12px;letter-spacing:.22em;color:var(--ink-soft);margin:0 0 8px}
+  h1{margin:0;font-size:24px;font-weight:700;letter-spacing:.02em}
+  .sub{font-size:13px;color:var(--ink-soft);margin-top:6px}
+  .meta{margin-top:10px;font-size:11px;color:var(--ink-soft)}
+  .meta b{color:var(--ink)}
+
+  /* legend */
+  .legend{
+    display:flex;flex-wrap:wrap;gap:8px;justify-content:center;
+    margin:18px 0 26px;font-size:12px;
+  }
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:999px;border:1px solid var(--line);background:var(--card)}
+  .dot{width:9px;height:9px;border-radius:3px;flex:none}
+  .dot.local{background:var(--local-line)}
+  .dot.remote{background:var(--remote-line)}
+  .dot.common{background:#cfc9bb}
+
+  /* section title */
+  .sec-title{display:flex;align-items:center;gap:10px;margin:26px 0 12px;font-size:13px;font-weight:700;letter-spacing:.06em;color:var(--ink)}
+  .sec-title::after{content:"";flex:1;height:1px;background:var(--line)}
+
+  /* two-column comparison */
+  .pair{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:8px}
+  .panel{border:1px solid var(--line);border-radius:14px;background:var(--card);overflow:hidden}
+  .panel-head{padding:11px 12px;font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px}
+  .panel-head small{font-weight:500;opacity:.75;font-size:11px;margin-left:auto;white-space:nowrap}
+  .panel.local .panel-head{background:var(--local-bg);color:var(--local-text);border-bottom:1px solid var(--local-line)}
+  .panel.remote .panel-head{background:var(--remote-bg);color:var(--remote-text);border-bottom:1px solid var(--remote-line)}
+  .panel ul{margin:0;padding:8px 10px 10px;list-style:none}
+  .panel li{font-size:12px;padding:7px 9px;border-radius:9px;display:flex;flex-direction:column;gap:2px}
+  .panel li + li{margin-top:2px}
+  .panel.local li{background:var(--local-bg);color:var(--local-text)}
+  .panel.remote li{background:var(--remote-bg);color:var(--remote-text)}
+  .path{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;font-weight:600}
+  .why{font-size:11px;opacity:.85}
+
+  /* common section */
+  .common{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+  .tag{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;color:var(--common-text);background:var(--common-bg);border:1px solid var(--line);padding:7px 11px;border-radius:10px}
+  .tag.group{background:var(--card);font-weight:700}
+  .tag.sub{color:var(--ink-soft)}
+
+  /* note cards */
+  .note{border:1px solid var(--line);border-left:4px solid var(--ink);background:var(--card);border-radius:12px;padding:14px 15px;margin-bottom:10px;font-size:13px}
+  .note h3{margin:0 0 6px;font-size:14px}
+  .note p{margin:4px 0}
+  .note .small{font-size:12px;color:var(--ink-soft)}
+  .flow{font-size:12px;background:var(--common-bg);border:1px dashed var(--line);border-radius:10px;padding:11px 13px;margin:14px 0}
+  .flow b{font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#efebe0;border-radius:6px;padding:1px 5px;font-size:.9em}
+
+  footer{text-align:center;font-size:11px;color:var(--ink-soft);margin-top:30px}
+  @media (max-width:420px){
+    .pair{gap:8px}
+    .panel li{font-size:11.5px}
+    .path{font-size:12px}
+    .panel-head{font-size:13px}
+  }
+</style>
+</head>
+<body>
+<header>
+  <p class="kicker">万界道友 · DAOYOU</p>
+  <h1>本地仓库 vs GitHub 上游</h1>
+  <p class="sub">目录结构差异对比</p>
+  <p class="meta">
+    <b>本地</b> /workspace &nbsp;·&nbsp; <b>上游</b> github.com/ChurchTao/Daoyou
+  </p>
+</header>
+
+<div class="wrap">
+  <div class="legend">
+    <span class="chip"><i class="dot local"></i>本地独有</span>
+    <span class="chip"><i class="dot remote"></i>上游独有</span>
+    <span class="chip"><i class="dot common"></i>两边一致</span>
+  </div>
+
+  <div class="sec-title">差异对比 · 目录结构</div>
+
+  <div class="pair">
+    <section class="panel local">
+      <div class="panel-head">本地仓库 <small>本地独有</small></div>
+      <ul>
+        <li><span class="path">deploy/</span><span class="why">离线一键部署：内置 bun / redis / nats 二进制 + 构建产物、启停脚本</span></li>
+        <li><span class="path">docker/</span><span class="why">Dockerfile 收进子目录 (Dockerfile.app)</span></li>
+        <li><span class="path">vite.battle-worker.config.ts</span><span class="why">在线战斗 resolver worker 独立构建</span></li>
+        <li><span class="path">scripts/docker-compose.production.yml</span><span class="why">生产 compose 移至 scripts/ 下</span></li>
+        <li><span class="path">scripts/blue-green-app.sh</span><span class="why">蓝绿发布脚本</span></li>
+        <li><span class="path">.github/workflows/deploy.yml</span><span class="why">本地 CI 部署流程不同</span></li>
+      </ul>
+    </section>
+
+    <section class="panel remote">
+      <div class="panel-head">GitHub 上游 <small>上游独有</small></div>
+      <ul>
+        <li><span class="path">sponsorkit/</span><span class="why">赞助商徽章 / 名单生成系统</span></li>
+        <li><span class="path">sponsorkit.config.js</span><span class="why">赞助生成配置</span></li>
+        <li><span class="path">SPONSORING.md / SPONSORS.md</span><span class="why">赞助相关文档</span></li>
+        <li><span class="path">.env.example</span><span class="why">环境变量样例（本地缺失）</span></li>
+        <li><span class="path">Dockerfile</span><span class="why">置于根目录</span></li>
+        <li><span class="path">docker-compose.yml</span><span class="why">置于根目录</span></li>
+        <li><span class="path">docker-compose.nats.yml</span><span class="why">置于根目录</span></li>
+      </ul>
+    </section>
+  </div>
+
+  <div class="sec-title">共有结构 · 两边一致</div>
+  <div class="common">
+    <span class="tag group">src/</span>
+    <span class="tag sub">server</span>
+    <span class="tag sub">react-app</span>
+    <span class="tag sub">shared</span>
+    <span class="tag group">drizzle/</span>
+    <span class="tag group">drizzle-auth/</span>
+    <span class="tag group">docs/</span>
+    <span class="tag group">public/</span>
+    <span class="tag group">scripts/</span>
+    <span class="tag group">.agents/skills/</span>
+    <span class="tag group">.github/</span>
+    <span class="tag group">bun.lock</span>
+    <span class="tag group">bunfig.toml</span>
+    <span class="tag group">package.json</span>
+    <span class="tag group">tsconfig*.json</span>
+    <span class="tag group">vite.config.ts</span>
+    <span class="tag group">vitest.config.ts</span>
+    <span class="tag group">drizzle.config.ts</span>
+    <span class="tag group">drizzle.auth.config.ts</span>
+    <span class="tag group">eslint.config.js</span>
+    <span class="tag group">index.html</span>
+    <span class="tag group">AGENTS.md</span>
+    <span class="tag group">README.md</span>
+    <span class="tag group">LICENSE</span>
+    <span class="tag group">.prettierrc</span>
+    <span class="tag group">.gitignore</span>
+  </div>
+
+  <div class="sec-title">结论</div>
+  <div class="note">
+    <h3>本地仓库是上游的一个「离线 / 独立部署」定制分支</h3>
+    <p>· 新增 <b>离线一键部署</b>（<code>deploy/</code>），内置 bun / redis / nats 与构建产物，可在无外网环境下自启。</p>
+    <p>· 把 <b>Docker 与 compose 收进</b> <code>docker/</code> 和 <code>scripts/</code>，并新增 battle-worker 构建与蓝绿发布脚本。</p>
+    <p>· <b>移除了赞助运营相关</b>（sponsorkit / SPONSORING / SPONSORS / .env.example）。</p>
+  </div>
+  <div class="flow">
+    若要同步上游，注意 <code>diff</code> 位置差异：<br>
+    root <b>Dockerfile</b> → <code>docker/Dockerfile.app</code> ·
+    root <b>docker-compose*.yml</b> → <code>scripts/</code> ·
+    并考虑补回 <b>.env.example</b>。
+  </div>
+
+  <footer>万界道友 · 目录结构对比 · 本地 vs GitHub</footer>
+</div>
+</body>
+</html>
