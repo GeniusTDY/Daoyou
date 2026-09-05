@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>道游 Daoyou · 目录结构对比</title>
+<style>
+  :root{
+    --left:#0e7490;
+    --left-bg:#ecfeff;
+    --right:#7c3aed;
+    --right-bg:#f5f3ff;
+    --amber:#b45309;
+    --amber-bg:#fffbeb;
+    --ink:#1f2937;
+    --muted:#6b7280;
+    --line:#e5e7eb;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:#f7f7f9;color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Segoe UI",sans-serif;
+    line-height:1.55;-webkit-text-size-adjust:100%;
+  }
+  header{background:#111827;color:#f9fafb;padding:24px 18px 20px}
+  header h1{margin:0;font-size:20px;font-weight:700;letter-spacing:.5px}
+  header p{margin:8px 0 0;font-size:12.5px;color:#cbd5e1}
+  header p .lbl{color:#67e8f9}header p .lbl.r{color:#c4b5fd}
+  .wrap{max-width:1100px;margin:0 auto;padding:16px 14px 60px}
+
+  .legend{display:flex;flex-wrap:wrap;gap:8px 14px;font-size:12px;color:var(--muted);margin-bottom:14px}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:10px;height:10px;border-radius:3px;display:inline-block;flex:0 0 auto}
+
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+  @media (min-width:720px){.cols{grid-template-columns:1fr 1fr}}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;min-width:0}
+  .panel::-webkit-scrollbar{height:8px;width:8px}
+  .panel::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:4px}
+  .panel-head{display:flex;align-items:center;gap:8px;padding:11px 14px;font-weight:700;font-size:13.5px;border-bottom:1px solid var(--line)}
+  .panel-head .badge{font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:999px;flex:0 0 auto}
+  .panel-head .count{margin-left:auto;font-size:10.5px;color:var(--muted);font-weight:500}
+  .p-left .panel-head{color:var(--left)}
+  .p-left .panel-head .badge{background:var(--left-bg);color:var(--left)}
+  .p-right .panel-head{color:var(--right)}
+  .p-right .panel-head .badge{background:var(--right-bg);color:var(--right)}
+  .tree-holder{padding:12px 14px;overflow:auto;max-height:90vh}
+  .tree{margin:0;list-style:none;padding:0;font-size:12.5px;white-space:nowrap}
+  .tree ul{list-style:none;padding-left:16px;margin:2px 0;border-left:1px solid var(--line)}
+  .tree li{position:relative;padding:1.5px 0}
+  .tree .p{display:inline-flex;align-items:baseline;gap:6px}
+  .tree .p .nm{font-weight:600;color:#334155}
+  .tree .p .fn{color:var(--muted);font-weight:400}
+  .tag{font-size:9.5px;font-weight:600;padding:1px 6px;border-radius:999px;vertical-align:1px;white-space:nowrap}
+  .t-l{background:var(--left-bg);color:var(--left)}
+  .t-r{background:var(--right-bg);color:var(--right)}
+  .t-d{background:var(--amber-bg);color:var(--amber)}
+  .cm{color:#94a3b8;font-size:10.5px;font-weight:400}
+
+  .diff{margin-top:24px}
+  .diff h2{font-size:16px;margin:0 0 10px}
+  .group{border:1px solid var(--line);border-radius:12px;background:#fff;margin-bottom:14px;overflow:hidden}
+  .group>summary{list-style:none;cursor:pointer;padding:13px 16px;font-weight:700;font-size:14px;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .group>summary::-webkit-details-marker{display:none}
+  .group>summary::before{content:"＋";color:var(--muted);font-weight:700;width:16px;text-align:center}
+  .group[open]>summary::before{content:"－"}
+  .g-l>summary{border-left:5px solid var(--left)}
+  .g-r>summary{border-left:5px solid var(--right)}
+  .g-d>summary{border-left:5px solid var(--amber)}
+  .gbody{padding:2px 16px 14px}
+  .gbody .eg{margin:0 0 10px;font-size:12.5px;color:var(--muted)}
+  .row{display:flex;gap:8px;align-items:baseline;padding:7px 0;border-top:1px dashed #f1f5f9;font-size:13px;flex-wrap:wrap}
+  .row:first-of-type{border-top:none}
+  .row .pcode{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;font-weight:600;white-space:nowrap;color:#334155}
+  .row .pcode .sep{color:#cbd5e1;margin:0 4px;font-weight:400}
+  .row .exp{color:#475569;min-width:0}
+  .g-l .row .pcode{color:var(--left)}
+  .g-r .row .pcode{color:var(--right)}
+
+  footer{max-width:1100px;margin:0 auto;padding:0 14px 40px;color:var(--muted);font-size:11.5px}
+</style>
+</head>
+<body>
+<header>
+  <h1>道游 Daoyou · 目录结构对比（仅目录，不对比文件）</h1>
+  <p><span class="lbl">左边 ▍</span> 我的仓库项目（当前工作区）　·　<span class="lbl r">右边 ▍</span> ChurchTao/Daoyou（GitHub master）　·　采集 2026-09-05</p>
+</header>
+
+<div class="wrap">
+  <div class="legend">
+    <span><i class="dot" style="background:var(--left)"></i> 仅·我的仓库 有</span>
+    <span><i class="dot" style="background:var(--right)"></i> 仅·ChurchTao 有</span>
+    <span><i class="dot" style="background:var(--amber)"></i> 两者都有 · 内部组织不同</span>
+  </div>
+
+  <div class="cols">
+    <!-- LEFT -->
+    <div class="panel p-left">
+      <div class="panel-head">
+        <span class="badge">我的仓库项目</span>
+        <span class="count">左侧</span>
+      </div>
+      <div class="tree-holder">
+        <ul class="tree">
+          <li><span class="p"><span class="nm">.agents</span></span>
+            <ul><li><span class="p"><span class="nm">skills/</span><span class="cm">（8 个 daoyou-* 技能包）</span></span></li></ul>
+          </li>
+          <li><span class="p"><span class="nm">.github</span><span class="fn">/ ISSUE_TEMPLATE · workflows</span></span></li>
+          <li><span class="p"><span class="nm">deploy</span> <span class="tag t-l">仅本仓库</span></span>
+            <ul>
+              <li><span class="p"><span class="nm">offline/app</span><span class="fn"> index.js · online-battle-resolver.js</span></span></li>
+              <li><span class="p"><span class="nm">offline/config</span><span class="fn"> nats-server.conf</span></span></li>
+              <li><span class="p"><span class="nm">offline/web</span><span class="fn"> 静态资源 · manifest</span></span></li>
+              <li><span class="p"><span class="nm">offline/</span><span class="fn"> start·stop·gen-secrets（sh/ps1/bat）</span></span></li>
+            </ul>
+          </li>
+          <li><span class="p"><span class="nm">docker</span><span class="fn">/ Dockerfile.app</span></span></li>
+          <li><span class="p"><span class="nm">docs</span><span class="fn">/ assets/tianyan · spirit-field · *.md</span></span></li>
+          <li><span class="p"><span class="nm">drizzle</span></span>
+            <ul><li><span class="p"><span class="nm">meta/</span><span class="cm">33 × snapshot</span> <span class="fn">· *.sql</span></span></li></ul>
+          </li>
+          <li><span class="p"><span class="nm">drizzle-auth</span></span>
+            <ul><li><span class="p"><span class="nm">meta/</span> <span class="fn">· *.sql（better_auth 独立迁移）</span></span></li></ul>
+          </li>
+          <li><span class="p"><span class="nm">public</span></span>
+            <ul>
+              <li><span class="p"><span class="nm">assets/app-boot</span> <span class="fn">· game-controls</span></span></li>
+              <li><span class="p"><span class="nm">assets/sect</span><span class="fn"> 各宗门地图图集</span> <span class="tag t-d">组织不同</span></span></li>
+              <li><span class="p"><span class="nm">assets/sponsors</span></span></li>
+              <li><span class="p"><span class="nm">fonts</span> <span class="tag t-l">仅本仓库</span></span></li>
+              <li><span class="p"><span class="nm">icons</span></span></li>
+            </ul>
+          </li>
+          <li><span class="p"><span class="nm">scripts</span><span class="fn">/ 迁移 · compose · 部署脚本</span></span></li>
+          <li><span class="p"><span class="nm">src</span></span>
+            <ul>
+              <li><span class="p"><span class="nm">react-app</span></span>
+                <ul>
+                  <li><span class="p"><span class="nm">components/</span><span class="fn"> auction · auth · cultivator · dungeon · func · game-shell · layout · mail · providers · router · ui</span> <span class="tag t-d">组织不同</span></span></li>
+                  <li><span class="p"><span class="nm">layouts/</span></span></li>
+                  <li><span class="p"><span class="nm">lib/</span><span class="fn"> alchemy · api · auth · battle · client · dungeon · hooks · player · realtime · resources · router · sect · tasks</span></span></li>
+                  <li><span class="p"><span class="nm">routes/</span><span class="fn"> admin · auth · battle-replay · index · login · signup</span></span>
+                    <ul><li><span class="p"><span class="nm">game/</span><span class="fn"> 仅 layout·route，玩法由场景 scene 机制承载</span> <span class="tag t-d">组织不同</span></span></li></ul>
+                  </li>
+                </ul>
+              </li>
+              <li><span class="p"><span class="nm">server</span></span>
+                <ul>
+                  <li><span class="p"><span class="nm">lib/</span><span class="fn"> auth · hono · lifespan · prompts · redis · tower</span></span></li>
+                  <li><span class="p"><span class="nm">lib/services/</span><span class="fn"> 扁平 .ts 服务集合</span> <span class="tag t-d">组织不同</span></span></li>
+                  <li><span class="p"><span class="nm">prompts/</span></span></li>
+                  <li><span class="p"><span class="nm">routes/api/</span><span class="fn"> 各功能 router</span></span></li>
+                  <li><span class="p"><span class="nm">routes/internal/</span><span class="fn"> cron</span></span></li>
+                  <li><span class="p"><span class="nm">utils/ workers/</span></span></li>
+                </ul>
+              </li>
+              <li><span class="p"><span class="nm">shared</span></span>
+                <ul>
+                  <li><span class="p"><span class="nm">config/ · contracts/ · data/</span></span></li>
+                  <li><span class="p"><span class="nm">engine/</span><span class="fn"> battle-v5(仅index) · creation-v2(扁平) · cultivation · cultivator · enemy-generation · resource · sect · shared · spirit-field · yield</span> <span class="tag t-d">组织不同</span></span></li>
+                  <li><span class="p"><span class="nm">lib/</span><span class="fn"> battle · bodyCultivation · constants · dungeon · game · tower · training-room</span></span></li>
+                  <li><span class="p"><span class="nm">online-battle/ · types/</span></span></li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="panel p-right">
+      <div class="panel-head">
+        <span class="badge">ChurchTao/Daoyou</span>
+        <span class="count">右侧</span>
+      </div>
+      <div class="tree-holder">
+        <ul class="tree">
+          <li><span class="p"><span class="nm">.agents</span></span>
+            <ul><li><span class="p"><span class="nm">skills/</span><span class="cm">每包多 agents/openai.yaml（game-ui 另有 references/）</span></span></li></ul>
+          </li>
+          <li><span class="p"><span class="nm">.github</span><span class="fn">/ ISSUE_TEMPLATE · workflows</span></span></li>
+          <li><span class="p"><span class="nm">docker</span><span class="fn">/ Dockerfile.app</span></span></li>
+          <li><span class="p"><span class="nm">docs</span><span class="fn">/ assets/tianyan · spirit-field</span></span></li>
+          <li><span class="p"><span class="nm">drizzle</span> <span class="fn">· drizzle-auth</span></span></li>
+          <li><span class="p"><span class="nm">public</span></span>
+            <ul>
+              <li><span class="p"><span class="nm">assets/app-boot · game-controls · sponsors</span></span></li>
+              <li><span class="p"><span class="nm">assets/battle/realtime/ui/</span><span class="fn"> resources · unit</span> <span class="tag t-r">仅ChurchTao</span></span></li>
+              <li><span class="p"><span class="nm">assets/sect/</span><span class="fn"> mining · onboarding · sweep</span> <span class="tag t-r">更深</span></span></li>
+              <li><span class="p"><span class="nm">icons</span></span></li>
+            </ul>
+          </li>
+          <li><span class="p"><span class="nm">scripts/fixtures/</span> <span class="tag t-r">仅ChurchTao</span></span></li>
+          <li><span class="p"><span class="nm">sponsorkit/</span> <span class="tag t-r">仅ChurchTao</span></span></li>
+          <li><span class="p"><span class="nm">src</span></span>
+            <ul>
+              <li><span class="p"><span class="nm">react-app</span></span>
+                <ul>
+                  <li><span class="p"><span class="nm">components/</span></span>
+                    <ul>
+                      <li><span class="p"><span class="nm">feature/</span> <span class="tag t-r">仅ChurchTao</span></span>
+                        <ul><li><span class="p"><span class="fn">alchemy(facilities·stages) · app-boot · app-version · battle(realtime/share/v3/v5) · consumables · craft · creation · cultivator(+inspection) · fates · friends · game-activity · home · item-shop · item-submission · items · map · merit · narrative · products · ranking · retreat · room · sect(+room) · tasks · world-chat</span></span></li></ul>
+                      </li>
+                      <li><span class="p"><span class="nm">func/ · game-shell/ · layout/ · mail/ · providers/ · router/ · ui/</span></span></li>
+                    </ul>
+                  </li>
+                  <li><span class="p"><span class="nm">lib/</span></span>
+                    <ul>
+                      <li><span class="p"><span class="nm">hooks/</span><span class="fn"> + dungeon · tower 子目录</span></span></li>
+                      <li><span class="p"><span class="nm">sect/</span><span class="fn"> + presentation/core</span></span></li>
+                      <li><span class="p"><span class="nm">alchemy · api · auth · battle · client · dungeon · player · realtime · resources · router · tasks</span></span></li>
+                    </ul>
+                  </li>
+                  <li><span class="p"><span class="nm">routes/</span> <span class="tag t-r">细分路由</span></span></li>
+                </ul>
+              </li>
+              <li><span class="p"><span class="nm">server</span></span>
+                <ul>
+                  <li><span class="p"><span class="nm">lib/</span> <span class="tag t-r">模块大幅扩展</span></span>
+                    <ul>
+                      <li><span class="p"><span class="nm">admin · drizzle · http · jobs · llm · mq · nats · redeem · repositories · sponsorship · template</span> <span class="tag t-r">仅ChurchTao</span></span></li>
+                      <li><span class="p"><span class="nm">dungeon/reward</span> <span class="tag t-r">独立</span></span></li>
+                      <li><span class="p"><span class="nm">services/</span><span class="fn"> alchemy · black-market · cultivator · resource · sect-organization(+task-executors/testing) · spirit-field</span> <span class="tag t-d">按域分目录</span></span></li>
+                      <li><span class="p"><span class="nm">auth · hono · lifespan · prompts · redis · tower</span></span></li>
+                    </ul>
+                  </li>
+                  <li><span class="p"><span class="nm">routes/api/</span><span class="fn"> + admin · cultivator 分组</span></span></li>
+                  <li><span class="p"><span class="nm">routes/internal · prompts · types · utils · workers</span></span></li>
+                </ul>
+              </li>
+              <li><span class="p"><span class="nm">shared</span></span>
+                <ul>
+                  <li><span class="p"><span class="nm">config/ · contracts/resources · data/</span></span></li>
+                  <li><span class="p"><span class="nm">engine/</span> <span class="tag t-r">深度模块化</span></span>
+                    <ul>
+                      <li><span class="p"><span class="nm">battle-v5/</span><span class="fn"> abilities·adapters·buffs·core·effects·factories·match·persistence·presentation·round·runtime·setup·systems·units(+v3, 各含 tests)</span></span></li>
+                      <li><span class="p"><span class="nm">creation-v2/</span><span class="fn"> adapters·affixes·analysis·balancing·budgeting·composers·config·contracts·core·handlers·models·persistence·resolvers·rules·services·validation(+tests)</span></span></li>
+                      <li><span class="p"><span class="nm">material/</span> <span class="tag t-r">仅ChurchTao</span></span></li>
+                      <li><span class="p"><span class="nm">sect/</span> <span class="tag t-r">content+core+testing</span></span>
+                        <ul><li><span class="p"><span class="fn">content/{jiujie,lingxiao,tianyan,wuxiang,youdu}(paths/base/shared/tests) · core/{authoring,compilation,domain,mining,organization,plugin,presentation,progression,runtime,sweep,validation} · testing</span></span></li></ul>
+                      </li>
+                      <li><span class="p"><span class="nm">cultivation/exp-gain-strategies · cultivator/creation · shared/tag-domain</span></span></li>
+                      <li><span class="p"><span class="nm">enemy-generation · resource · spirit-field · yield</span></span></li>
+                    </ul>
+                  </li>
+                  <li><span class="p"><span class="nm">lib/</span><span class="fn"> battle · bodyCultivation · constants · dungeon · game · tower · training-room</span></span></li>
+                  <li><span class="p"><span class="nm">online-battle/ · types/</span></span></li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="diff">
+    <h2>差异说明（仅说明存在差异的目录功能）</h2>
+
+    <details class="group g-l" open>
+      <summary>仅 <b>我的仓库</b> 有的目录</summary>
+      <div class="gbody">
+        <p class="eg">这些目录在 ChurchTao/Daoyou 中不存在。</p>
+        <div class="row"><span class="pcode">deploy/</span><span class="exp">离线/单机一键部署方案：<b>offline/app</b>（离线后端入口与联机战斗结算器）、<b>offline/config</b>（NATS 配置）、<b>offline/web</b>（离线前端静态构建）及 start/stop/gen-secrets 启停与密钥生成脚本。</span></div>
+        <div class="row"><span class="pcode">public/fonts/</span><span class="exp">自带的字体资源（站酷小薇、马善政楷体等）。ChurchTao 未将该目录入库。</span></div>
+      </div>
+    </details>
+
+    <details class="group g-r" open>
+      <summary>仅 <b>ChurchTao/Daoyou</b> 有的目录</summary>
+      <div class="gbody">
+        <p class="eg">这些目录在我的仓库中不存在。</p>
+        <div class="row"><span class="pcode">sponsorkit/</span><span class="exp">赞助商自动化素材生成（赞助者头像/感谢图）。</span></div>
+        <div class="row"><span class="pcode">scripts/fixtures/</span><span class="exp">固定示例数据，供演示与测试使用。</span></div>
+        <div class="row"><span class="pcode">public/assets/battle/realtime/ui/</span><span class="exp">实时联机战斗 UI 素材（resources/unit）。</span></div>
+        <div class="row"><span class="pcode">public/assets/sect/{mining,onboarding,sweep}/</span><span class="exp">宗门采矿、引导、扫荡玩法素材。</span></div>
+        <div class="row"><span class="pcode">react-app/components/feature/</span><span class="exp">大型功能组件层：把各玩法 UI 按 feature 拆分为数十个包（alchemy、battle、creation、craft、sect、map、world-chat…）。</span></div>
+        <div class="row"><span class="pcode">react-app/routes/**</span><span class="exp"><b>game/**</b>：arena、auction、battle、bet-battle、black-market、body-cultivation、community、craft、create、dungeon、enlightenment、fate-reshape、identity-reshape、inn、inventory、mail、map、market、marrow-wash、merit-ledger、rankings、redeem、reincarnate、retreat、sect(30+)、settings、skills、spirit-field、tasks、techniques、tianjiao-vault、tower、training-room、world-chat 等；<b>admin/**</b>：后台各页面；<b>login/signup/forgot/reset-password</b>：鉴权流程独立路由。</span></div>
+        <div class="row"><span class="pcode">server/lib/repositories/</span><span class="exp">数据库仓储层，集中封装 Drizzle 持久化查询。</span></div>
+        <div class="row"><span class="pcode">server/lib/drizzle/</span><span class="exp">Drizzle 数据访问入口。</span></div>
+        <div class="row"><span class="pcode">server/lib/jobs/</span><span class="exp">后台任务 / 定时任务模块。</span></div>
+        <div class="row"><span class="pcode">server/lib/http/</span><span class="exp">HTTP 客户端工具。</span></div>
+        <div class="row"><span class="pcode">server/lib/llm/</span><span class="exp">LLM 集成层（统一 provider 调用）。</span></div>
+        <div class="row"><span class="pcode">server/lib/{mq,nats}/</span><span class="exp">消息队列与 NATS 消息总线集成（领域事件发布/订阅）。</span></div>
+        <div class="row"><span class="pcode">server/lib/redeem/</span><span class="exp">兑换码模块。</span></div>
+        <div class="row"><span class="pcode">server/lib/sponsorship/</span><span class="exp">赞助管理。</span></div>
+        <div class="row"><span class="pcode">server/lib/template/</span><span class="exp">模板渲染（邮件/公告等）。</span></div>
+        <div class="row"><span class="pcode">server/lib/admin/ · routes/api/admin · api/cultivator</span><span class="exp">管理后台能力与 API 按业务域再分组的二级路由。</span></div>
+        <div class="row"><span class="pcode">server/lib/dungeon/reward/</span><span class="exp">副本奖励逻辑独立成模块。</span></div>
+        <div class="row"><span class="pcode">shared/engine/battle-v5/**</span><span class="exp">战斗引擎深度模块化：abilities、adapters、buffs、core、effects、factories、match、persistence、presentation、round、runtime、setup、systems、units 及 tests —— 本项目仅一个 index。</span></div>
+        <div class="row"><span class="pcode">shared/engine/creation-v2/**</span><span class="exp">炼化/制作引擎深度模块化：affixes、analysis、composers、core、handlers、models、persistence、resolvers、rules、services、validation 及 tests —— 本项目为扁平文件。</span></div>
+        <div class="row"><span class="pcode">shared/engine/material/</span><span class="exp">材料引擎（含 creation/data）。</span></div>
+        <div class="row"><span class="pcode">shared/engine/sect/</span><span class="exp">宗门内容引擎：<b>content</b> 下 jiujie/lingxiao/tianyan/wuxiang/youdu 五大宗门玩法，<b>core</b> 下 authoring、compilation、domain、mining、organization、plugin、presentation、progression、runtime、sweep、validation，另有 testing。</span></div>
+        <div class="row"><span class="pcode">shared/engine/{cultivation/exp-gain-strategies, cultivator/creation, shared/tag-domain}</span><span class="exp">经验成长策略、角色创建域、共享标签域等细分引擎。</span></div>
+      </div>
+    </details>
+
+    <details class="group g-d" open>
+      <summary>两者都有、但<b>内部组织结构不同</b>的目录</summary>
+      <div class="gbody">
+        <p class="eg">同名目录，但内部划分方式不同。</p>
+        <div class="row"><span class="pcode">react-app/routes/game</span><span class="exp">我的仓库：单一 game/route + 场景(handle scene)机制承载全部玩法；ChurchTao：为每个玩法建独立路由目录。</span></div>
+        <div class="row"><span class="pcode">react-app/components</span><span class="exp">我的仓库：ui/layout/game-shell 公共组件 + 少量 func/；ChurchTao：额外引入大规模 feature/** 组件归集。</span></div>
+        <div class="row"><span class="pcode">server/lib/services</span><span class="exp">我的仓库：扁平单个 .ts 服务文件集合；ChurchTao：按业务领域分子目录（alchemy、black-market、cultivator、resource、sect-organization、spirit-field）。</span></div>
+        <div class="row"><span class="pcode">shared/engine</span><span class="exp">我的仓库：浅层/扁平（battle-v5 仅 index、creation-v2 单文件等）；ChurchTao：深度模块化并新增 material、sect-content、tag-domain 等子引擎。</span></div>
+        <div class="row"><span class="pcode">public/assets/sect</span><span class="exp">我的仓库：仅各宗门整体地图图集；ChurchTao：增细分玩法素材目录。</span></div>
+      </div>
+    </details>
+  </div>
+</div>
+
+<footer>
+  说明：对比基于两侧仓库<strong>目录（tree）</strong>，不含文件内容比较；我的仓库取自当前工作区磁盘，ChurchTao/Daoyou 取自 GitHub master 分支目录树。
+</footer>
+</body>
+</html>
