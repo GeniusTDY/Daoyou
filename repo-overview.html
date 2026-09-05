@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<title>仓库结构总览 · 玩解道游</title>
+<style>
+  :root{
+    --bg:#f6f3ec; --card:#fff; --ink:#2b2823; --sub:#8a8272; --line:#e6e1d4;
+    --accent:#8b5a1e; --accent-soft:#f0e6d2; --tag:#eee9dd;
+    --code:#6b5a3a;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#141210; --card:#1d1a16; --ink:#ece5d6; --sub:#9c917c;
+      --line:#2f2a22; --accent:#d9a14a; --accent-soft:#2a2317; --tag:#262119; --code:#d9b071; }
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Segoe UI","Microsoft YaHei",sans-serif;
+    line-height:1.55; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:760px; margin:0 auto; padding:20px 16px 48px}
+  header{position:sticky; top:0; z-index:5; background:var(--bg); padding:14px 0 10px; border-bottom:1px solid var(--line)}
+  .kicker{font-size:12px; color:var(--sub); letter-spacing:.12em; text-transform:uppercase}
+  h1{font-size:22px; margin:6px 0 2px; font-weight:700}
+  .sub{font-size:13px; color:var(--sub); margin-bottom:4px}
+  .badges{display:flex; flex-wrap:wrap; gap:6px; margin-top:10px}
+  .badge{font-size:11px; background:var(--tag); border:1px solid var(--line); border-radius:999px; padding:3px 9px; color:var(--ink)}
+  .badge b{color:var(--accent); font-weight:600}
+
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px 14px; margin-top:14px}
+  .card h2{font-size:15px; margin:0 0 2px; display:flex; align-items:center; gap:8px}
+  .card h2 .path{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:13px; color:var(--accent)}
+  .card .desc{font-size:13px; color:var(--sub); margin:2px 0 10px}
+  .leaf{margin-top:6px}
+  .leaf .row{display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px dashed var(--line)}
+  .leaf .row:last-child{border-bottom:none}
+  .leaf .name{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12.5px; color:var(--code); white-space:nowrap}
+  .leaf .memo{font-size:12px; color:var(--sub); text-align:right; flex:1}
+
+  .group{padding-left:2px}
+  .group>.gname{font-size:12px; color:var(--sub); margin:10px 0 2px; letter-spacing:.03em; font-weight:600}
+  .chip{display:inline-block; font-family:ui-monospace,monospace; font-size:11.5px; background:var(--accent-soft); color:var(--accent); border-radius:6px; padding:1px 6px; margin:1px 2px 1px 0}
+  .foot{font-size:11px; color:var(--sub); margin-top:18px; text-align:center; opacity:.8}
+  details{border:1px solid var(--line); border-radius:12px; margin-top:12px; overflow:hidden}
+  summary{cursor:pointer; padding:12px 14px; font-weight:700; font-size:14px; list-style:none; display:flex; justify-content:space-between; align-items:center; background:var(--card)}
+  summary::-webkit-details-marker{display:none}
+  summary .s{font-size:12px; color:var(--sub); font-weight:500; font-family:ui-monospace,monospace}
+  .acc-body{padding:0 14px 14px; background:var(--card)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="kicker">Repository Map</div>
+  <h1>仓库结构总览</h1>
+  <div class="sub">Hono + React 19 单页游戏项目 · 玩法：修仙文本向（战斗 / 炼丹 / 宗门 / 挂机）</div>
+  <div class="badges">
+    <span class="badge">栈 <b>Bun · Hono · React19 · Vite · Tailwind4</b></span>
+    <span class="badge">数据 <b>PostgreSQL · Drizzle · Redis</b></span>
+    <span class="badge">MQ <b>NATS</b></span>
+    <span class="badge">AI <b>AI SDK · LLM</b></span>
+    <span class="badge">认证 <b>Better Auth · ALTCHA</b></span>
+  </div>
+</header>
+
+<section class="card">
+  <h2><span class="path">src/</span> 主源码（三类）</h2>
+  <div class="desc">其余目录多为配置、迁移、部署与文档，真正的业务代码都在 <span class="chip">src</span> 下。</div>
+  <div class="leaf">
+    <div class="row"><span class="name">src/shared</span><span class="memo">共享契约 · 游戏引擎 · 纯逻辑 · 领域类型</span></div>
+    <div class="row"><span class="name">src/server</span><span class="memo">Hono 后端 · 路由 · 服务 · 数据 · 队列</span></div>
+    <div class="row"><span class="name">src/react-app</span><span class="memo">React 前端 · 路由 · UI · 状态 · 壳</span></div>
+    <div class="row"><span class="name">src/index.ts</span><span class="memo">根 Hono app · SPA 回退 · 定时任务注册</span></div>
+  </div>
+</section>
+
+<details open>
+  <summary>src/shared <span class="s">共享层 · 前后端同用</span></summary>
+  <div class="acc-body">
+    <div class="leaf">
+      <div class="group">
+        <div class="gname">引擎 engine/（纯逻辑，可单测）</div>
+        <div class="row"><span class="name">battle-v5 / creation-v2</span><span class="memo">战斗、创作/炼制核心</span></div>
+        <div class="row"><span class="name">cultivation / cultivator / yield</span><span class="memo">修炼、属性、产出</span></div>
+        <div class="row"><span class="name">enemy-generation</span><span class="memo">敌人生成</span></div>
+        <div class="row"><span class="name">spirit-field / sect</span><span class="memo">灵田、宗门玩法</span></div>
+      </div>
+      <div class="group">
+        <div class="gname">lib/（领域逻辑工具）</div>
+        <span class="chip">alchemy*</span><span class="chip">blackMarket*</span><span class="chip">condition</span><span class="chip">consumables</span><span class="chip">pill*</span><span class="chip">qi</span><span class="chip">tower</span><span class="chip">dungeon</span><span class="chip">fates</span>
+        <div class="row" style="margin-top:8px"><span class="name">battle/simulateBattleV5</span><span class="memo">战斗回放/模拟</span></div>
+      </div>
+      <div class="group">
+        <div class="gname">contracts/（请求/响应契约）</div>
+        <div class="row"><span class="name">resources</span><span class="memo">资源/库存/玩家/宗门定义</span></div>
+        <div class="row"><span class="name">*.ts</span><span class="memo">账号/宗门/战斗/世界聊天/后台等</span></div>
+      </div>
+      <div class="group">
+        <div class="gname">config/ · types/ · online-battle/ · data/</div>
+        <div class="row"><span class="name">config</span><span class="memo">平衡数值配置（LLM/丹药/修炼/拍卖）</span></div>
+        <div class="row"><span class="name">types</span><span class="memo">领域 DTO / 类型</span></div>
+        <div class="row"><span class="name">online-battle</span><span class="memo">在线战斗表现</span></div>
+      </div>
+    </div>
+  </div>
+</details>
+
+<details>
+  <summary>src/server <span class="s">后端 API · 服务 · 数据 · 队列</span></summary>
+  <div class="acc-body">
+    <div class="leaf">
+      <div class="row"><span class="name">routes/</span><span class="memo">Hono 路由（玩家/后台）</span></div>
+      <div class="row"><span class="name">lib/drizzle</span><span class="memo">DB 入口 db.ts · schema.ts</span></div>
+      <div class="row"><span class="name">lib/auth + hono.ts</span><span class="memo">Better Auth · ALTCHA · 会话</span></div>
+      <div class="row"><span class="name">lib/hono</span><span class="memo">中间件（鉴权/校验/限额/日志）</span></div>
+      <div class="row"><span class="name">lib/repositories</span><span class="memo">数据仓库层（21+ 个领域仓库）</span></div>
+      <div class="row"><span class="name">lib/redis</span><span class="memo">缓存/限流/锁/排行/冷却</span></div>
+      <div class="row"><span class="name">lib/mq + lib/nats</span><span class="memo">NATS 领域事件 · 战斗消费/回放归档</span></div>
+      <div class="row"><span class="name">lib/jobs / lifespan</span><span class="memo">内部 cron · 生命周期</span></div>
+      <div class="row"><span class="name">lib/admin</span><span class="memo">SMTP 邮件 · 模板 · 接收人解析</span></div>
+      <div class="row"><span class="name">lib/llm</span><span class="memo">LLM 提供方 · 指标</span></div>
+      <div class="row"><span class="name">prompts/</span><span class="memo">LLM 提示词（炼丹/突破/命格/灵田等）</span></div>
+      <div class="row"><span class="name">utils/</span><span class="memo">aiClient · 突破/经验/奖励等计算</span></div>
+      <div class="row"><span class="name">workers/</span><span class="memo">在线战斗 Worker 解析器</span></div>
+    </div>
+  </div>
+</details>
+
+<details>
+  <summary>src/react-app <span class="s">前端 SPA</span></summary>
+  <div class="acc-body">
+    <div class="leaf">
+      <div class="row"><span class="name">router.tsx / routes/</span><span class="memo">集中路由 · 游戏/后台/登录等页面</span></div>
+      <div class="row"><span class="name">layouts/</span><span class="memo">游戏各布局（Genesis/Viewport/战斗/地图/地牢）</span></div>
+      <div class="row"><span class="name">components/game-shell</span><span class="memo">游戏壳：顶部 HUD / 底部 Dock / 场景帧</span></div>
+      <div class="row"><span class="name">components/feature</span><span class="memo">按玩法拆分的功能组件（炼丹/战斗/宗门/背包…）</span></div>
+      <div class="row"><span class="name">components/ui</span><span class="memo">通用 Ink UI 组件库</span></div>
+      <div class="row"><span class="name">components/providers</span><span class="memo">InkUI · PWA 安装等 Provider</span></div>
+      <div class="row"><span class="name">lib/</span><span class="memo">前端 Hooks · 资源 store · auth · realtime · 路由工具</span></div>
+      <div class="row"><span class="name">App.tsx / main.tsx</span><span class="memo">入口组装</span></div>
+    </div>
+  </div>
+</details>
+
+<details>
+  <summary>drizzle/ · drizzle-auth/ <span class="s">数据库迁移</span></summary>
+  <div class="acc-body">
+    <div class="leaf">
+      <div class="row"><span class="name">drizzle</span><span class="memo">业务表 wanjiedaoyou_* 迁移 + 快照</span></div>
+      <div class="row"><span class="name">drizzle-auth</span><span class="memo">Better Auth 固定 schema（独立迁移）</span></div>
+    </div>
+  </div>
+</details>
+
+<details>
+  <summary>docs/ · scripts/ · docker/ · deploy/ <span class="s">文档与部署</span></summary>
+  <div class="acc-body">
+    <div class="leaf">
+      <div class="row"><span class="name">docs/</span><span class="memo">设计/架构笔记（需对照当前代码）</span></div>
+      <div class="row"><span class="name">scripts/</span><span class="memo">蓝绿部署 · compose(nats/prod) · 离线迁移脚本</span></div>
+      <div class="row"><span class="name">docker/</span><span class="memo">应用 Dockerfile</span></div>
+      <div class="row"><span class="name">deploy/</span><span class="memo">离线一键部署包（前端产物+后端+迁移+脚本）</span></div>
+    </div>
+  </div>
+</details>
+
+<details>
+  <summary>.agents · .github · public/ <span class="s">辅助目录</span></summary>
+  <div class="acc-body">
+    <div class="leaf">
+      <div class="row"><span class="name">.agents/skills</span><span class="memo">项目专属 AI 技能（改代码前先看对应 SKILL）</span></div>
+      <div class="row"><span class="name">.github</span><span class="memo">议题模板 · CI/CD（master 构建推送镜像）</span></div>
+      <div class="row"><span class="name">public/</span><span class="memo">前端静态资源：图片/字体/图标/PWA</span></div>
+    </div>
+  </div>
+</details>
+
+<div class="foot">生成于本地沙箱 · 仅作目录概览，数据以仓库为准</div>
+
+</div>
+</body>
+</html>
