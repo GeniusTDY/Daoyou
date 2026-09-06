@@ -66,6 +66,22 @@ offline/
 | `APP_PORT` / `PG_PORT` / `REDIS_PORT` / `NATS_PORT` | 端口，占用时调整 |
 | `DATABASE_URL` / `REDIS_URL` / `NATS_SERVERS` | 连接串，改端口时需同步修改 |
 | `LLM_PROVIDER` / `OPENAI_BASE_URL` / `OPENAI_API_KEY` | 接入内网 OpenAI 兼容推理端，接通生成型玩法（见下方） |
+| `NATS_PASSWORD` / `PG_PASSWORD` | 内网默认口令 `Daoyou`（服务仅绑定 127.0.0.1），如需自订改后 restart 生效 |
+
+---
+
+## 账号与管理员
+
+游戏账号使用**道号 + 密码**注册/登录，无需邮箱。系统会把道号映射为内部邮箱
+`u_<道号>@xiantu.local` 用于登录链路。
+
+> 首个注册的账号**不会自动成为管理员**，管理员需显式登记。
+
+在 `config/.env` 中配置任一项后执行 `./start.sh restart` 生效，目标账号即为管理员：
+- `ADMIN_USER_IDS=<用户ID>`：登记目标账号的系统用户 ID（推荐）。
+- `ADMIN_EMAILS=<邮箱>`：旧式邮箱匹配，填该账号映射的邮箱 `u_<道号>@xiantu.local`。
+
+管理员可访问后台管理（账号管理、广播、物品库配置等）功能。
 
 ---
 
