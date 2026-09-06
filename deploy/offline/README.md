@@ -8,17 +8,18 @@
 
 ```bash
 # 1. 拷贝整个 offline/ 目录到目标机
-# 2. 生成配置（含随机密钥）
-cp config/.env.example config/.env   # 首次：复制模板为实际配置
-./gen-secrets.sh                     # Linux（自动写入随机密钥）
-# gen-secrets.bat                    # Windows
+# 2. 首次启动（自动创建 config/.env 并写入随机密钥，随后启动全部服务）
+./start.sh              # Windows: start.bat
 
-# 3. 编辑 config/.env：
+# 可选：如需自定义，先编辑 config/.env（首次生成后已存在）
 #    - BETTER_AUTH_URL：实际访问地址
 #    - 如需离线接通生成型玩法，配置内网 LLM（见下方"接入离线内网 LLM"）
+#    改完后执行 ./start.sh restart 生效
 
-# 4. 启动
-./start.sh              # Windows: start.bat
+# 其他：停止/状态/重启
+./stop.sh               # Windows: stop.bat
+./start.sh restart      # Windows: start.bat restart
+./start.sh status       # Windows: start.bat status
 ```
 
 浏览器访问 `http://<服务器IP>:<APP_PORT>` 即可。
