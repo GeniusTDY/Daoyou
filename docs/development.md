@@ -1,6 +1,8 @@
 # 本地开发与部署
 
 > 本页整理《万界道友》的本地开发、环境变量、数据库、构建、Docker、部署脚本与生产 cron 配置。项目简介、玩法、截图与赞助信息见 [README](../README.md)。
+>
+> 如需**断网内网一键部署**（内置全部运行时、无需联网拉取依赖），见 [deploy/README.md](../deploy/README.md)。本页以在线形态（前端 SPA + Docker 后端）为准。
 
 ## 目录结构
 
@@ -87,8 +89,9 @@ cp .env.example .env.local
 | `API_IP_RATE_LIMIT_MAX_REQUESTS` | `/api/*` 同 IP 令牌桶容量和每周期补充 token 数；默认 `300` |
 | `PUBLIC_WEB_ORIGINS` | 允许访问 API 的前端 origin，逗号分隔，如 `https://app.example.com,http://localhost:5173` |
 | `BETTER_AUTH_COOKIE_DOMAIN` | 可选；同站子域部署时可填 `.example.com` 启用跨子域 cookie |
-| `ADMIN_EMAILS` | 管理员邮箱白名单，逗号分隔 |
+| `ADMIN_DAOHAOS` | 管理员道号白名单（推荐，无需查用户 ID、无需邮箱映射），逗号分隔 |
 | `ADMIN_USER_IDS` | Better Auth 管理员用户 ID 白名单，逗号分隔；账号管理工具必须配置 |
+| `ADMIN_EMAILS` | 历史遗留：按内部邮箱匹配管理员，逗号分隔；新部署不推荐使用 |
 
 ### 生产 cron 必需
 
@@ -116,7 +119,7 @@ ALTCHA 不需要前端 site key。认证 CAPTCHA 启用时 Redis 也是强依赖
 
 ### 邮件能力
 
-邮箱验证码、密码注册验证邮件、重置密码邮件、后台邮件广播都会使用SMTP。密码注册必须完成邮箱验证后才能登录；验证链接完成后会自动登录：
+密码注册只需道号 + 密码，无需邮箱验证（`requireEmailVerification` 关闭）。SMTP 仅用于管理员/运营侧的通知类邮件（后台广播、反馈等）；未配置时对应功能关闭，不影响登录注册：
 
 | 变量                                      | 说明          |
 | ----------------------------------------- | ------------- |

@@ -27,7 +27,7 @@ description: Daoyou Hono API、认证、授权、Better Auth、ALTCHA、admin、
 - Existing auth middleware:
   - `requireUser()` for logged-in users.
   - `requireActiveCultivator()` for logged-in users with an active cultivator; it sets `user`, `cultivator`, and `executor`.
-  - `requireAdmin()` for `ADMIN_EMAILS` allowlist.
+  - `requireAdmin()` for admin identity via `ADMIN_DAOHAOS` (daohao, recommended), `ADMIN_USER_IDS`, or legacy `ADMIN_EMAILS`.
   - `validateJson()` and `validateQuery()` for Zod parsing.
 - Admin subroutes currently apply `requireAdmin()` explicitly inside handlers.
 - `/internal/cron/*` uses `Authorization: Bearer ${CRON_SECRET}`, not user sessions. In production, missing `CRON_SECRET` returns 500.
