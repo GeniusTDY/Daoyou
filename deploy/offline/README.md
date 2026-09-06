@@ -9,7 +9,7 @@
 ```bash
 # 1. 拷贝整个 offline/ 目录到目标机
 # 2. 首次启动（自动创建 config/.env 并写入随机密钥，随后启动全部服务）
-./start.sh              # Windows: start.bat
+./start.sh
 
 # 可选：如需自定义，先编辑 config/.env（首次生成后已存在）
 #    - BETTER_AUTH_URL：实际访问地址
@@ -17,9 +17,9 @@
 #    改完后执行 ./start.sh restart 生效
 
 # 其他：停止/状态/重启
-./stop.sh               # Windows: stop.bat
-./start.sh restart      # Windows: start.bat restart
-./start.sh status       # Windows: start.bat status
+./stop.sh
+./start.sh restart
+./start.sh status
 ```
 
 浏览器访问 `http://<服务器IP>:<APP_PORT>` 即可。
@@ -39,8 +39,8 @@ offline/
 │   └── nats-server.conf
 ├── data/           # 运行时数据（自动生成，备份即备份全部数据）
 ├── logs/           # 运行日志（自动生成）
-├── gen-secrets.*   # 密钥生成脚本
-├── start.* / stop.*
+├── gen-secrets.sh   # 密钥生成脚本
+├── start.sh / stop.sh
 └── ...
 ```
 
@@ -48,14 +48,12 @@ offline/
 
 ## 一键脚本
 
-| 操作 | Linux | Windows |
-| --- | --- | --- |
-| 启动（自动建库 + 迁移） | `./start.sh` | `start.bat` |
-| 重启 | `./start.sh restart` | `start.bat restart` |
-| 状态 | `./start.sh status` | `start.bat status` |
-| 停止 | `./stop.sh` | `stop.bat` |
-
-> Windows 需使用 Windows 版离线包（`bin/` 下为 `.exe` 二进制），脚本自动兼容 `.exe` / 无扩展名命名。
+| 操作 | 命令 |
+| --- | --- |
+| 启动（自动建库 + 迁移） | `./start.sh` |
+| 重启 | `./start.sh restart` |
+| 状态 | `./start.sh status` |
+| 停止 | `./stop.sh` |
 
 ---
 
