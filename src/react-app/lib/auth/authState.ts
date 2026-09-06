@@ -11,7 +11,7 @@ type AuthUser = SessionPayload['user'];
  *
  * Better Auth  email  z.email()
  *  UTF-8  [0-9a-f]
- *  local part`u_<hex>@xiantu.local`
+ *  local part`u_<hex>@daoyou.local`
  *  user.name
  *  src/server/lib/auth/auth.ts
  */
@@ -21,7 +21,7 @@ export function daohaoToAuthEmail(daohao: string): string {
     (byte) => byte.toString(16).padStart(2, '0'),
   ).join('');
 
-  return `u_${hex}@xiantu.local`;
+  return `u_${hex}@daoyou.local`;
 }
 
 export type AuthActionError = {

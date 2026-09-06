@@ -1,0 +1,1 @@
+import{B as e,R as t}from"./utils-BgARXyzi.js";import{t as n}from"./jsx-runtime-DlWfbcA0.js";import{a as r}from"./game-shell-JEYyypZU.js";import{t as i}from"./RetreatView-MO-tfMRb.js";var a=e(t(),1),o=n();function s(){return(0,o.jsx)(a.Suspense,{fallback:(0,o.jsx)(r,{message:`洞府封闭中……`}),children:(0,o.jsx)(i,{})})}export{s as default};

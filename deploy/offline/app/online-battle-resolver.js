@@ -1,6 +1,6 @@
 //#region src/shared/engine/shared/tag-domain/GameplayTagContainer.ts
 /**
-* 标签容器：管理单位、技能、Buff 等对象的标签集合。
+* Buff
 */
 var GameplayTagContainer = class GameplayTagContainer {
 	_tags = /* @__PURE__ */ new Set();
@@ -135,12 +135,12 @@ CreationTags.MATERIAL.SEMANTIC_FLAME, CreationTags.MATERIAL.SEMANTIC_FREEZE, Cre
 //#endregion
 //#region src/shared/engine/shared/tag-domain/gameplayTags.ts
 /**
-* GameplayTags: creation-v2 与 battle-v5 共用的运行时语义词表。
+* GameplayTags: creation-v2  battle-v5
 *
-* 约定：
-* 1. 所有运行时标签都从这里取值，不允许手写字符串。
-* 2. 叶子节点用于实际挂载与匹配，ROOT 仅用于表达父命名空间或做前缀判断。
-* 3. Ability 轴已显式拆成 Function / Channel / Kind / Element / Target，避免再把“做什么”和“走哪条伤害通道”混为一谈。
+*
+* 1.
+* 2. ROOT
+* 3. Ability  Function / Channel / Kind / Element / Target“”“”
 */
 var GameplayTags = {
 	UNIT: {
@@ -338,8 +338,8 @@ var GameplayTags = {
 	}
 };
 /**
-* 将 ElementType 中文字符映射到对应的运行时 Ability.Element.* 标签。
-* 供 AbilityTagAssembler 与 affix 条件构造使用。
+*  ElementType  Ability.Element.*
+*  AbilityTagAssembler  affix
 */
 var ELEMENT_TO_RUNTIME_ABILITY_TAG = {
 	金: GameplayTags.ABILITY.ELEMENT.METAL,
@@ -407,16 +407,16 @@ var ModifierType = /* @__PURE__ */ function(ModifierType) {
 	ModifierType["FIXED"] = "fixed";
 	ModifierType["ADD"] = "add";
 	/**
-	* 累乘修正：每个 MULTIPLY modifier 的 value 作为独立乘数，最终结果为所有 value 连乘。
+	*  MULTIPLY modifier  value  value
 	*
-	* 计算公式（来自 AttributeSet.getFinalValue）：
+	*  AttributeSet.getFinalValue
 	*   `final *= modifiers.filter(MULTIPLY).reduce((p, m) => p * m.value, 1)`
 	*
-	* 用途示例：
-	* - value = 1.5 → 提升 50%（×1.5）
-	* - value = 0.7 → 降低 30%（×0.7）
 	*
-	* 与 ADD 的区别：ADD 是百分比加法（`final *= 1 + sum`），MULTIPLY 是独立乘法（累乘）。
+	* - value = 1.5 →  50%×1.5
+	* - value = 0.7 →  30%×0.7
+	*
+	*  ADD ADD `final *= 1 + sum`MULTIPLY
 	*/
 	ModifierType["MULTIPLY"] = "multiply";
 	ModifierType["FINAL"] = "final";
@@ -970,24 +970,24 @@ function checkConditions(context, conditions) {
 //#endregion
 //#region src/shared/engine/battle-v5/abilities/Ability.ts
 /**
-* Ability 基类 - 遵循 GAS 设计原则
+* Ability  -  GAS
 *
-* 职责：
-* - 定义能力的核心接口（canTrigger, execute）
-* - 管理标签系统（用于条件判断和解耦）
-* - 提供事件订阅辅助方法
 *
-* 生命周期：
-* 1. 创建 → constructor()
-* 2. 绑定所有者 → setOwner()
-* 3. 激活 → setActive(true) → 调用 onActivate()
-* 4. 执行 → canTrigger() 检查 → execute() 执行
-* 5. 停用 → setActive(false) → 调用 onDeactivate()
-* 6. 销毁 → destroy()
+* - canTrigger, execute
+* -
+* -
 *
-* 子类职责：
-* - ActiveSkill: 添加冷却、消耗、目标策略
-* - PassiveAbility: 订阅事件，响应触发
+*
+* 1.  → constructor()
+* 2.  → setOwner()
+* 3.  → setActive(true) →  onActivate()
+* 4.  → canTrigger()  → execute()
+* 5.  → setActive(false) →  onDeactivate()
+* 6.  → destroy()
+*
+*
+* - ActiveSkill:
+* - PassiveAbility:
 */
 var Ability = class Ability {
 	id;
@@ -1045,23 +1045,16 @@ var Ability = class Ability {
 	isActive() {
 		return this._active;
 	}
-	/**
-	* 激活时调用
-	* 子类可重写此方法进行初始化（如订阅事件）
-	*/
 	onActivate() {}
 	/**
-	* 停用时调用
-	* 子类可重写此方法进行清理（如取消订阅）
-	* 注意：基类会自动取消所有通过 subscribeEvent 订阅的事件
+	*
+	*
+	*  subscribeEvent
 	*/
 	onDeactivate() {
 		for (const subscription of this._eventSubscriptions) this._eventBus.unsubscribe(subscription.eventType, subscription.handler);
 		this._eventSubscriptions = [];
 	}
-	/**
-	* 订阅事件（会在停用时自动取消）
-	*/
 	subscribeEvent(eventType, handler, priority) {
 		this._eventBus.subscribe(eventType, handler, priority);
 		this._eventSubscriptions.push({
@@ -1075,16 +1068,16 @@ var Ability = class Ability {
 		return runtime.events;
 	}
 	/**
-	* 检查是否可以触发
-	* @param context 包含 caster 和 target 的上下文
-	* @returns 是否可以执行
+	*
+	* @param context  caster  target
+	* @returns
 	*/
 	canTrigger(context) {
 		return this._owner !== null;
 	}
 	/**
-	* 执行能力效果
-	* @param context 包含 caster 和 target 的上下文
+	*
+	* @param context  caster  target
 	*/
 	execute(_context) {}
 	get priority() {
@@ -1094,8 +1087,8 @@ var Ability = class Ability {
 		this._priority = value;
 	}
 	/**
-	* 克隆能力实例
-	* 注意：不复制 owner 和 active 状态
+	*
+	*  owner  active
 	*/
 	clone() {
 		const cloned = new Ability(this.id, this.name, this.type, this.description);
@@ -1103,9 +1096,6 @@ var Ability = class Ability {
 		cloned.tags.addTags(this.tags.getTags());
 		return cloned;
 	}
-	/**
-	* 销毁能力，释放资源
-	*/
 	destroy() {
 		this.setActive(false);
 		this._owner = null;
@@ -1113,10 +1103,6 @@ var Ability = class Ability {
 };
 //#endregion
 //#region src/shared/engine/battle-v5/abilities/TargetPolicy.ts
-/**
-* 目标策略类
-* 定义技能如何选择目标
-*/
 var TargetPolicy = class TargetPolicy {
 	team;
 	scope;
@@ -1128,18 +1114,12 @@ var TargetPolicy = class TargetPolicy {
 		this.filters = config.filters ?? [];
 		this.maxTargets = config.maxTargets ?? 1;
 	}
-	/**
-	* 默认目标策略：单体敌方
-	*/
 	static default() {
 		return new TargetPolicy({
 			team: "enemy",
 			scope: "single"
 		});
 	}
-	/**
-	* 自身目标策略
-	*/
 	static self() {
 		return new TargetPolicy({
 			team: "self",
@@ -1147,7 +1127,7 @@ var TargetPolicy = class TargetPolicy {
 		});
 	}
 	/**
-	* AOE 敌方策略
+	* AOE
 	*/
 	static aoeEnemy(maxTargets = 5) {
 		return new TargetPolicy({
@@ -1160,12 +1140,12 @@ var TargetPolicy = class TargetPolicy {
 //#endregion
 //#region src/shared/engine/battle-v5/abilities/ActiveSkill.ts
 /**
-* 主动技能基类
 *
-* 职责：
-* - 管理冷却时间
-* - 管理资源消耗
-* - 定义目标策略
+*
+*
+* -
+* -
+* -
 */
 var ActiveSkill = class extends Ability {
 	_resolution;
@@ -1230,8 +1210,8 @@ var ActiveSkill = class extends Ability {
 		if (this._cooldown > 0) this._cooldown = Math.max(0, this._cooldown - 1);
 	}
 	/**
-	* 修改当前冷却时间
-	* @param delta 变化量，正数为增加，负数为减少
+	*
+	* @param delta
 	*/
 	modifyCooldown(delta) {
 		this._cooldown = Math.max(0, this._cooldown + this.normalizeCooldownValue(delta));
@@ -1256,9 +1236,6 @@ var ActiveSkill = class extends Ability {
 	get manaCost() {
 		return this.resourceCosts.find((c) => c.type === "mp")?.amount ?? 0;
 	}
-	/**
-	* 检查是否有足够资源
-	*/
 	hasEnoughResources(caster) {
 		const transform = peekAbilityTransform(caster, this);
 		let hpRequired = 0;
@@ -1280,9 +1257,6 @@ var ActiveSkill = class extends Ability {
 		}
 		return caster.getCurrentMp() >= mpRequired && caster.getCurrentHp() - hpRequired >= hpRetain;
 	}
-	/**
-	* 消耗资源
-	*/
 	consumeResources(caster) {
 		const transform = peekAbilityTransform(caster, this);
 		const costs = this._castSnapshot?.costs ?? this.resolveCosts(caster);
@@ -1328,10 +1302,6 @@ var ActiveSkill = class extends Ability {
 			};
 		});
 	}
-	/**
-	* 检查是否可以触发
-	* 包含冷却检查和资源检查
-	*/
 	canTrigger(context) {
 		if (!super.canTrigger(context)) return false;
 		if (!this.isReady()) return false;
@@ -1377,10 +1347,6 @@ var ActiveSkill = class extends Ability {
 	get castSnapshot() {
 		return this._castSnapshot;
 	}
-	/**
-	* 执行技能
-	* 负责资源消耗、冷却启动、效果执行
-	*/
 	execute(context) {
 		this.executeMultiple(context.caster, [{
 			target: context.target,
@@ -1619,9 +1585,6 @@ function freezeResult(result) {
 }
 //#endregion
 //#region src/shared/engine/battle-v5/effects/Effect.ts
-/**
-* 效果执行上下文
-*/
 var EffectExecutionContextV3 = class EffectExecutionContextV3 {
 	attribution;
 	owner;
@@ -1634,10 +1597,6 @@ var EffectExecutionContextV3 = class EffectExecutionContextV3 {
 	castSnapshot;
 	damageCause;
 	resolution;
-	/**
-	* 触发此效果的事件（可选）
-	* 用于支持吸血、反伤、根据受击伤害触发的效果等
-	*/
 	triggerEvent;
 	ownerLivenessPolicy;
 	constructor(input, attribution, ownerLivenessPolicy) {
@@ -1733,18 +1692,18 @@ function resolveOwnedEffectLivenessPolicy(input) {
 	return "require_alive";
 }
 /**
-* 原子效果基类 (Atomic Gameplay Effect)
+*  (Atomic Gameplay Effect)
 *
-* 职责：
-* - 定义原子操作（伤害、治疗、加Buff等）
-* - 在特定的上下文中执行
+*
+* - Buff
+* -
 */
 var GameplayEffect = class {};
 //#endregion
 //#region src/shared/engine/battle-v5/factories/EffectRegistry.ts
 /**
-* 效果注册表
-* 职责：解耦工厂与具体实现类，提供全局统一的 GE 实例化入口
+*
+*  GE
 */
 var EffectRegistry = class EffectRegistry {
 	static instance;
@@ -1754,15 +1713,9 @@ var EffectRegistry = class EffectRegistry {
 		if (!EffectRegistry.instance) EffectRegistry.instance = new EffectRegistry();
 		return EffectRegistry.instance;
 	}
-	/**
-	* 注册一个新的效果构造器
-	*/
 	register(type, constructor) {
 		this.registry.set(type, constructor);
 	}
-	/**
-	* 创建效果实例，并注入条件检查包装
-	*/
 	create(config) {
 		const constructor = this.registry.get(config.type);
 		if (!constructor) {
@@ -1776,16 +1729,13 @@ var EffectRegistry = class EffectRegistry {
 		return baseEffect;
 	}
 	/**
-	* 使用条件检查包装原始效果 (代理模式)
+	*  ()
 	*/
 	wrapWithConditions(effect, conditions) {
 		return { execute: (context) => {
 			if (this.checkConditions(context, conditions)) effect.execute(context);
 		} };
 	}
-	/**
-	* 检查所有条件是否满足
-	*/
 	checkConditions(context, conditions) {
 		return checkConditions(context, conditions);
 	}
@@ -1966,12 +1916,12 @@ function shouldExecuteListener(owner, event, runtime, source) {
 //#endregion
 //#region src/shared/engine/battle-v5/abilities/DataDrivenActiveSkill.ts
 /**
-* 数据驱动的主动技能 (Data-Driven Active Skill)
+*  (Data-Driven Active Skill)
 *
-* 职责：
-* - 作为原子效果 (GameplayEffect) 的容器
-* - 按照顺序执行所有原子效果
-* - 遵循 GAS 规范进行资源消耗和冷却管理
+*
+* -  (GameplayEffect)
+* -
+* -  GAS
 */
 var DataDrivenActiveSkill = class DataDrivenActiveSkill extends ActiveSkill {
 	_effects = [];
@@ -1981,8 +1931,8 @@ var DataDrivenActiveSkill = class DataDrivenActiveSkill extends ActiveSkill {
 		super(id, name, config);
 	}
 	/**
-	* 向技能添加一个原子效果
-	* @param effect 原子效果实例
+	*
+	* @param effect
 	*/
 	addEffect(effect) {
 		this._effects.push(effect);
@@ -2016,10 +1966,6 @@ var DataDrivenActiveSkill = class DataDrivenActiveSkill extends ActiveSkill {
 		if (owner) releaseGlobalUniqueEffects(owner, this);
 		super.onDeactivate();
 	}
-	/**
-	* 执行技能核心逻辑
-	* 依次触发所有装配的效果
-	*/
 	executeSkill(caster, target) {
 		const context = EffectExecutionContextV3.activeAbility({
 			owner: caster,
@@ -2065,9 +2011,6 @@ var DataDrivenActiveSkill = class DataDrivenActiveSkill extends ActiveSkill {
 		});
 		for (const { effect } of effects) executeGameplayEffectV3(effect, context);
 	}
-	/**
-	* 克隆技能实例，同时克隆所有效果
-	*/
 	clone() {
 		const cloned = new DataDrivenActiveSkill(this.id, this.name, {
 			description: this.description,
@@ -2099,19 +2042,19 @@ var DataDrivenActiveSkill = class DataDrivenActiveSkill extends ActiveSkill {
 //#endregion
 //#region src/shared/engine/battle-v5/abilities/PassiveAbility.ts
 /**
-* 被动能力基类
 *
-* 特点：
-* - 无冷却、无消耗
-* - 通过事件触发（而非主动释放）
-* - 在激活时自动订阅事件
 *
-* 生命周期：
-* 1. 创建 → constructor()
-* 2. 绑定所有者 → setOwner()
-* 3. 激活 → setActive(true) → setupEventListeners()
-* 4. 触发 → 事件驱动，通过 createEventHandler 包装
-* 5. 停用 → setActive(false) → 自动取消订阅
+*
+* -
+* -
+* -
+*
+*
+* 1.  → constructor()
+* 2.  → setOwner()
+* 3.  → setActive(true) → setupEventListeners()
+* 4.  →  createEventHandler
+* 5.  → setActive(false) →
 */
 var PassiveAbility = class extends Ability {
 	constructor(id, name) {
@@ -2122,9 +2065,9 @@ var PassiveAbility = class extends Ability {
 		this.setupEventListeners();
 	}
 	/**
-	* 创建事件处理包装器
-	* 自动检查所有者是否存在
-	* 存活策略由 listener guard 控制
+	*
+	*
+	*  listener guard
 	*/
 	createEventHandler(handler) {
 		return (event) => {
@@ -2132,15 +2075,12 @@ var PassiveAbility = class extends Ability {
 			handler(event);
 		};
 	}
-	/**
-	* 被动技能永远可以触发（由事件驱动）
-	*/
 	canTrigger() {
 		return true;
 	}
 	/**
-	* 被动技能通常不通过 execute 执行
-	* 而是通过事件订阅直接响应
+	*  execute
+	*
 	*/
 	execute() {}
 	clone() {
@@ -2150,16 +2090,13 @@ var PassiveAbility = class extends Ability {
 //#endregion
 //#region src/shared/engine/battle-v5/abilities/DataDrivenPassiveAbility.ts
 /**
-* 数据驱动的被动能力 (Data-Driven Passive Ability)
-* 
-* 职责：
-* - 动态订阅战斗事件 (EDA)
-* - 当事件触发时，执行对应的原子效果链 (GAS)
+*  (Data-Driven Passive Ability)
+*
+*
+* -  (EDA)
+* -  (GAS)
 */
 var DataDrivenPassiveAbility = class DataDrivenPassiveAbility extends PassiveAbility {
-	/**
-	* 为了支持工厂装配，我们内部持有已实例化的效果映射
-	*/
 	_instantiatedListeners = [];
 	_modifiers = [];
 	constructor(id, name) {
@@ -2200,10 +2137,6 @@ var DataDrivenPassiveAbility = class DataDrivenPassiveAbility extends PassiveAbi
 		super.onDeactivate();
 		if (owner) releaseGlobalUniqueEffects(owner, this);
 	}
-	/**
-	* 设置事件监听
-	* 覆盖基类方法，实现动态订阅
-	*/
 	setupEventListeners() {
 		const owner = this.getOwner();
 		if (!owner) return;
@@ -2233,9 +2166,6 @@ var DataDrivenPassiveAbility = class DataDrivenPassiveAbility extends PassiveAbi
 		});
 		for (const { effect } of effects) executeGameplayEffectV3(effect, context);
 	}
-	/**
-	* 被动技能没有主动效果链
-	*/
 	setupListeners() {}
 	clone() {
 		const cloned = new DataDrivenPassiveAbility(this.id, this.name);
@@ -2255,7 +2185,6 @@ var DataDrivenPassiveAbility = class DataDrivenPassiveAbility extends PassiveAbi
 };
 //#endregion
 //#region src/shared/engine/battle-v5/core/abilityEffectPlan.ts
-/** 在施法准备阶段解析一次；调用方负责持有返回快照直至本次结算结束。 */
 function resolveAbilityEffectPlan(source, context) {
 	const plan = [...source.effectPlans ?? []].sort((left, right) => right.priority - left.priority).find((candidate) => checkConditions(context, candidate.conditions));
 	const layersById = new Map((source.effectLayers ?? []).map((layer) => [layer.id, layer]));
@@ -2302,7 +2231,7 @@ function assertUniqueIds(slug, kind, ids) {
 }
 //#endregion
 //#region src/shared/engine/battle-v5/abilities/LayeredDataDrivenActiveSkill.ts
-/** 固定目标、费用和 AI 意图，只允许按计划追加效果层的主动技能。 */
+/**  AI  */
 var LayeredDataDrivenActiveSkill = class LayeredDataDrivenActiveSkill extends ActiveSkill {
 	preparedPlan;
 	baseCosts;
@@ -2535,13 +2464,7 @@ function analyzeAbilityCapabilities(config) {
 }
 //#endregion
 //#region src/shared/engine/battle-v5/core/ValueCalculator.ts
-/**
-* 数值计算工具类
-*/
 var ValueCalculator = class {
-	/**
-	* 计算最终数值
-	*/
 	static calculate(value, caster, target) {
 		return this.calculateDetailed(value, caster, target).total;
 	}
@@ -2621,17 +2544,17 @@ var StackRule = {
 	IGNORE: "ignore"
 };
 /**
-* BUFF 基类
+* BUFF
 *
-* GAS+EDA 架构设计：
-* - Buff 持有 owner 引用，可主动订阅事件
-* - 支持层数机制（大多数 Buff 都有层数概念）
-* - 生命周期：setOwner() → onActivate() → [事件响应] → onDeactivate()
+* GAS+EDA
+* - Buff  owner
+* -  Buff
+* - setOwner() → onActivate() → [] → onDeactivate()
 *
-* 实现方式：
-* - 子类重写 onActivate() 订阅事件、添加属性修改器
-* - 子类重写 onDeactivate() 取消订阅、移除属性修改器
-* - 使用 _subscribeEvent() 辅助方法订阅事件（自动存储引用便于取消）
+*
+* -  onActivate()
+* -  onDeactivate()
+* -  _subscribeEvent()
 */
 var Buff = class Buff {
 	id;
@@ -2676,27 +2599,27 @@ var Buff = class Buff {
 		this.tags = new GameplayTagContainer();
 	}
 	/**
-	* 设置 owner 引用（由 BuffContainer 调用）
-	* 这是 GAS 架构的关键：Buff 需要知道自己的宿主才能订阅事件
+	*  owner  BuffContainer
+	*  GAS Buff
 	*/
 	setOwner(owner) {
 		this._owner = owner;
 	}
 	/**
-	* 获取 owner
+	*  owner
 	*/
 	getOwner() {
 		return this._owner;
 	}
 	/**
-	* 设置 source 引用（Buff 来源，通常是施法者）
-	* 用于 DOT 伤害归属、伤害加成计算等
+	*  source Buff
+	*  DOT
 	*/
 	setSource(source) {
 		this._source = source;
 	}
 	/**
-	* 获取 source（Buff 来源）
+	*  sourceBuff
 	*/
 	getSource() {
 		return this._source;
@@ -2707,47 +2630,41 @@ var Buff = class Buff {
 	getCombatAttributionV3() {
 		return this._combatAttribution;
 	}
-	/**
-	* 获取当前层数
-	*/
 	getLayer() {
 		return this._layer;
 	}
 	/**
-	* 增加层数
-	* @param layers 增加的层数，默认为 1
+	*
+	* @param layers  1
 	*/
 	addLayer(layers = 1) {
 		const previous = this._layer;
 		this._layer = Math.min(this.maxLayers ?? Number.POSITIVE_INFINITY, this._layer + layers);
 		if (this._layer !== previous) this.onLayerChanged();
 	}
-	/**
-	* 设置层数
-	*/
 	setLayer(layer) {
 		const previous = this._layer;
 		this._layer = Math.max(1, Math.min(this.maxLayers ?? Number.POSITIVE_INFINITY, layer));
 		if (this._layer !== previous) this.onLayerChanged();
 	}
-	/** Buff 层数变化钩子，供依赖层数的运行时效果重新挂载。 */
+	/** Buff  */
 	onLayerChanged() {}
 	/**
-	* Buff 激活时的初始化（GAS 模式）
-	* 子类重写此方法来订阅事件、添加标签、添加属性修改器等
+	* Buff GAS
 	*
-	* 注意：此方法在 setOwner() 之后调用，此时 this._owner 已可用
+	*
+	*  setOwner()  this._owner
 	*/
 	onActivate() {}
 	/**
-	* Buff 移除时的清理（GAS 模式）
-	* 子类重写此方法来取消订阅、移除标签、移除属性修改器等
+	* Buff GAS
+	*
 	*/
 	onDeactivate(reason) {
 		this._unsubscribeAll();
 	}
 	/**
-	* 订阅事件的辅助方法（存储 handler 引用用于后续取消订阅）
+	*  handler
 	*/
 	_subscribeEvent(eventType, handler, priority = 0) {
 		const wrappedHandler = handler;
@@ -2757,18 +2674,12 @@ var Buff = class Buff {
 		});
 		this._eventBus.subscribe(eventType, wrappedHandler, priority);
 	}
-	/**
-	* 取消订阅事件
-	*/
 	_unsubscribeEvent(eventType) {
 		const remaining = [];
 		for (const subscription of this._subscribedHandlers) if (subscription.eventType === eventType) this._eventBus.unsubscribe(subscription.eventType, subscription.handler);
 		else remaining.push(subscription);
 		this._subscribedHandlers = remaining;
 	}
-	/**
-	* 取消所有事件订阅
-	*/
 	_unsubscribeAll() {
 		for (const subscription of this._subscribedHandlers) this._eventBus.unsubscribe(subscription.eventType, subscription.handler);
 		this._subscribedHandlers = [];
@@ -2777,9 +2688,6 @@ var Buff = class Buff {
 		if (!this._owner) throw new Error(`Buff ${this.id} must have an owner`);
 		return this._owner.runtime.events;
 	}
-	/**
-	* 持续时间管理
-	*/
 	getDuration() {
 		return this._duration;
 	}
@@ -2793,8 +2701,8 @@ var Buff = class Buff {
 		this._duration = this._maxDuration;
 	}
 	/**
-	* 刷新持续时间到指定值（用于堆叠规则 REFRESH_DURATION）
-	* @param duration 新的持续时间和最大持续时间
+	*  REFRESH_DURATION
+	* @param duration
 	*/
 	refreshToDuration(duration) {
 		this._duration = duration;
@@ -2805,7 +2713,7 @@ var Buff = class Buff {
 		this._duration = this._maxDuration === -1 ? -1 : Math.max(0, Math.min(this._maxDuration, Math.trunc(current)));
 	}
 	/**
-	* 设置持续时间（供子类 clone 使用）
+	*  clone
 	*/
 	setDuration(duration) {
 		this._duration = duration;
@@ -2816,18 +2724,15 @@ var Buff = class Buff {
 	isExpired() {
 		return !this.isPermanent() && this._duration <= 0;
 	}
-	/**
-	* 属性修改器（可被子类重写）
-	*/
 	getAttributeModifiers() {
 		return [];
 	}
 	/**
-	* 克隆 Buff 实例
-	* 子类可以重写此方法以实现更复杂的克隆逻辑
-	* 注意：
-	* - owner 和 source 不会被复制，需要通过 setOwner/setSource 设置
-	* - 层数会被复制
+	*  Buff
+	*
+	*
+	* - owner  source  setOwner/setSource
+	* -
 	*/
 	clone() {
 		const cloned = new Buff(this.id, this.name, this.type, this._maxDuration, this.stackRule, this.description, this.maxLayers, this.logVisibility, this.dispelPolicy, this.countsAsStatus, this.statusVisibility, this.stackPriority, this.dispelMode, this.removeOnDeath, this.durationUnit);
@@ -2878,8 +2783,8 @@ function consumeDamageSegmentCount(context) {
 //#endregion
 //#region src/shared/engine/battle-v5/effects/DamageEffect.ts
 /**
-* 伤害原子效果
-* 职责：计算伤害并发布 DamageSegmentRequestedEvent
+*
+*  DamageSegmentRequestedEvent
 */
 var DamageEffect = class extends GameplayEffect {
 	params;
@@ -3007,9 +2912,6 @@ var DamageEffect = class extends GameplayEffect {
 EffectRegistry.getInstance().register("damage", (params) => new DamageEffect(params));
 //#endregion
 //#region src/shared/engine/battle-v5/effects/HealEffect.ts
-/**
-* 治疗原子效果
-*/
 var HealEffect = class extends GameplayEffect {
 	params;
 	constructor(params) {
@@ -3079,12 +2981,12 @@ function getRealmEffectChanceMultiplier(delta) {
 //#endregion
 //#region src/shared/engine/battle-v5/buffs/DataDrivenBuff.ts
 /**
-* 数据驱动的 BUFF (Data-Driven Buff)
+*  BUFF (Data-Driven Buff)
 *
-* 职责：
-* - 完全基于配置定义行为
-* - 管理属性修改器和标签的生命周期
-* - 通过监听战斗事件执行原子效果
+*
+* -
+* -
+* -
 */
 var DataDrivenBuff = class DataDrivenBuff extends Buff {
 	_config;
@@ -3198,18 +3100,18 @@ var DataDrivenBuff = class DataDrivenBuff extends Buff {
 //#endregion
 //#region src/shared/engine/battle-v5/factories/BuffFactory.ts
 /**
-* BUFF 工厂
-* 
-* 职责：
-* - 将强类型的 BuffConfig 转换为 DataDrivenBuff 实例
-* - 装配监听器和效果链
+* BUFF
+*
+*
+* -  BuffConfig  DataDrivenBuff
+* -
 */
 var BuffFactory = class {
 	static assertListenerContract(listener) {
 		if (!listener.scope) throw new Error(`Listener ${listener.eventType} is missing required field: scope`);
 	}
 	/**
-	* 根据配置创建 BUFF 实例
+	*  BUFF
 	*/
 	static create(config) {
 		for (const modifier of config.modifiers ?? []) {
@@ -3232,8 +3134,8 @@ var BuffFactory = class {
 		return buff;
 	}
 	/**
-	* 创建效果执行器
-	* 委托给 AbilityFactory 以保持逻辑统一
+	*
+	*  AbilityFactory
 	*/
 	static createEffect(cfg) {
 		return AbilityFactory.createEffect(cfg);
@@ -3245,7 +3147,7 @@ function clampChance(value) {
 	return Math.max(0, Math.min(1, value));
 }
 /**
-* 施加 Buff 原子效果
+*  Buff
 */
 var ApplyBuffEffect = class extends GameplayEffect {
 	params;
@@ -3311,8 +3213,8 @@ EffectRegistry.getInstance().register("apply_buff", (params) => new ApplyBuffEff
 //#endregion
 //#region src/shared/engine/battle-v5/effects/ResourceDrainEffect.ts
 /**
-* 资源夺取原子效果 (吸血/吸蓝)
-* 依赖于触发它的伤害事件数据
+*  (/)
+*
 */
 var ResourceDrainEffect = class extends GameplayEffect {
 	params;
@@ -3348,8 +3250,8 @@ EffectRegistry.getInstance().register("resource_drain", (params) => new Resource
 //#endregion
 //#region src/shared/engine/battle-v5/effects/DispelEffect.ts
 /**
-* 驱散原子效果
-* 用于驱散正面或负面状态 (基于标签体系)
+*
+*  ()
 */
 var DispelEffect = class extends GameplayEffect {
 	params;
@@ -3398,9 +3300,6 @@ var DispelEffect = class extends GameplayEffect {
 EffectRegistry.getInstance().register("dispel", (params) => new DispelEffect(params));
 //#endregion
 //#region src/shared/engine/battle-v5/effects/ShieldEffect.ts
-/**
-* 护盾原子效果
-*/
 var ShieldEffect = class extends GameplayEffect {
 	params;
 	constructor(params) {
@@ -3433,10 +3332,6 @@ var ShieldEffect = class extends GameplayEffect {
 EffectRegistry.getInstance().register("shield", (params) => new ShieldEffect(params));
 //#endregion
 //#region src/shared/engine/battle-v5/effects/MagicShieldEffect.ts
-/**
-* 魔法盾原子效果
-* 以法力换取伤害吸收，不占用实体护盾池。
-*/
 var MagicShieldEffect = class extends GameplayEffect {
 	params;
 	constructor(params = {}) {
@@ -3477,9 +3372,9 @@ EffectRegistry.getInstance().register("magic_shield", (params) => new MagicShiel
 //#endregion
 //#region src/shared/engine/battle-v5/core/attributeMeta.ts
 /**
-* 百分比语义属性：
-* - FIXED 代表直接增加 0.12 / 0.25 这类百分比点数
-* - ADD 代表在当前底座上再乘一个百分比系数
+*
+* - FIXED  0.12 / 0.25
+* - ADD
 */
 var PERCENTAGE_ATTRIBUTE_TYPES = /* @__PURE__ */ new Set([
 	AttributeType.CRIT_RATE,
@@ -3836,10 +3731,6 @@ var EventBus = class EventBus {
 };
 //#endregion
 //#region src/shared/engine/battle-v5/effects/ReflectEffect.ts
-/**
-* 反伤原子效果
-* 订阅受击事件并在造成伤害后反馈给攻击者
-*/
 var ReflectEffect = class extends GameplayEffect {
 	params;
 	constructor(params) {
@@ -3884,10 +3775,6 @@ var CombatMechanicCodeV3 = {
 };
 //#endregion
 //#region src/shared/engine/battle-v5/effects/ManaBurnEffect.ts
-/**
-* 焚元原子效果
-* 削减目标的法力
-*/
 var ManaBurnEffect = class extends GameplayEffect {
 	params;
 	constructor(params) {
@@ -3921,10 +3808,6 @@ var ManaBurnEffect = class extends GameplayEffect {
 EffectRegistry.getInstance().register("mana_burn", (params) => new ManaBurnEffect(params));
 //#endregion
 //#region src/shared/engine/battle-v5/effects/CooldownModifyEffect.ts
-/**
-* 冷却修改原子效果
-* 扰动技能的时序逻辑
-*/
 var CooldownModifyEffect = class extends GameplayEffect {
 	params;
 	constructor(params) {
@@ -3967,8 +3850,8 @@ EffectRegistry.getInstance().register("cooldown_modify", (params) => new Cooldow
 //#endregion
 //#region src/shared/engine/battle-v5/effects/BuffDurationModifyEffect.ts
 /**
-* BUFF 持续时间扰动效果
-* 用于在 BuffAddEvent 上延长符合条件的正面/负面状态持续时间。
+* BUFF
+*  BuffAddEvent /
 */
 var BuffDurationModifyEffect = class extends GameplayEffect {
 	params;
@@ -3989,9 +3872,6 @@ var BuffDurationModifyEffect = class extends GameplayEffect {
 EffectRegistry.getInstance().register("buff_duration_modify", (params) => new BuffDurationModifyEffect(params));
 //#endregion
 //#region src/shared/engine/battle-v5/effects/DeathPreventEffect.ts
-/**
-* 免死原子效果
-*/
 var DeathPreventEffect = class extends GameplayEffect {
 	params;
 	constructor(params) {
@@ -4031,7 +3911,7 @@ EffectRegistry.getInstance().register("death_prevent", (params) => new DeathPrev
 //#endregion
 //#region src/shared/engine/battle-v5/effects/BuffImmunityEffect.ts
 /**
-* BUFF 免疫原子效果
+* BUFF
 */
 var BuffImmunityEffect = class extends GameplayEffect {
 	params;
@@ -4067,9 +3947,6 @@ var BuffImmunityEffect = class extends GameplayEffect {
 EffectRegistry.getInstance().register("buff_immunity", (params) => new BuffImmunityEffect(params));
 //#endregion
 //#region src/shared/engine/battle-v5/effects/DamageImmunityEffect.ts
-/**
-* 伤害免疫原子效果
-*/
 var DamageImmunityEffect = class extends GameplayEffect {
 	params;
 	constructor(params) {
@@ -4112,11 +3989,11 @@ EffectRegistry.getInstance().register("damage_immunity", (params) => new DamageI
 //#endregion
 //#region src/shared/engine/battle-v5/effects/SkillImmunityEffect.ts
 /**
-* 在施法前摇阶段拦截整个技能。
 *
-* 与 buff_immunity / damage_immunity 不同，这里不参与技能效果结算，
-* 而是直接将 SkillPreCastEvent 标记为已免疫，由 ActionExecutionSystem
-* 统一取消本次施法。因此技能的伤害、治疗、控制、Buff 和费用效果都不会执行。
+*
+*  buff_immunity / damage_immunity
+*  SkillPreCastEvent  ActionExecutionSystem
+* Buff
 */
 var SkillImmunityEffect = class extends GameplayEffect {
 	params;
@@ -4138,10 +4015,6 @@ var SkillImmunityEffect = class extends GameplayEffect {
 EffectRegistry.getInstance().register("skill_immunity", (params) => new SkillImmunityEffect(params));
 //#endregion
 //#region src/shared/engine/battle-v5/effects/TagTriggerEffect.ts
-/**
-* 标签触发原子效果
-* 检查目标是否有指定标签，如果有则执行后续逻辑
-*/
 var TagTriggerEffect = class extends GameplayEffect {
 	params;
 	constructor(params) {
@@ -4193,8 +4066,8 @@ EffectRegistry.getInstance().register("tag_trigger", (params) => new TagTriggerE
 //#endregion
 //#region src/shared/engine/battle-v5/effects/PercentDamageModifierEffect.ts
 /**
-* 百分比增减伤原子效果
-* 仅写入 DamageSegmentRequestedEvent 的同乘区桶，不直接乘算伤害。
+*
+*  DamageSegmentRequestedEvent
 */
 var PercentDamageModifierEffect = class extends GameplayEffect {
 	params;
@@ -5358,7 +5231,6 @@ var LifestealEffect = class extends GameplayEffect {
 EffectRegistry.getInstance().register("lifesteal", (params) => new LifestealEffect(params));
 //#endregion
 //#region src/shared/engine/battle-v5/effects/RefundPaidCostEffect.ts
-/** 按本次施法快照中的实际支付法力返还资源。 */
 var RefundPaidCostEffect = class extends GameplayEffect {
 	params;
 	constructor(params) {
@@ -5394,7 +5266,6 @@ var RefundPaidCostEffect = class extends GameplayEffect {
 EffectRegistry.getInstance().register("refund_paid_cost", (params) => new RefundPaidCostEffect(params));
 //#endregion
 //#region src/shared/engine/battle-v5/effects/MechanicLogEffect.ts
-/** 内容层发布通用具名机制与状态迁移，不接触日志聚合和渲染器。 */
 var MechanicLogEffect = class extends GameplayEffect {
 	params;
 	constructor(params) {
@@ -5422,20 +5293,17 @@ EffectRegistry.getInstance().register("mechanic_log", (params) => new MechanicLo
 //#endregion
 //#region src/shared/engine/battle-v5/factories/AbilityFactory.ts
 /**
-* 技能工厂
 *
-* 职责：
-* - 解析强类型的 AbilityConfig
-* - 实例化 DataDrivenActiveSkill 或 DataDrivenPassiveAbility
-* - 递归装配效果链和监听器
+*
+*
+* -  AbilityConfig
+* -  DataDrivenActiveSkill  DataDrivenPassiveAbility
+* -
 */
 var AbilityFactory = class {
 	static assertListenerContract(listener) {
 		if (!listener.scope) throw new Error(`Listener ${listener.eventType} is missing required field: scope`);
 	}
-	/**
-	* 根据配置创建技能实例
-	*/
 	static create(config) {
 		validateAbilityEffectPlans(config);
 		const id = config.slug;
@@ -5521,9 +5389,6 @@ var AbilityFactory = class {
 		}
 		throw new Error(`Ability type ${config.type} is not supported.`);
 	}
-	/**
-	* 统一的效果实例化方法
-	*/
 	static createEffect(cfg) {
 		return EffectRegistry.getInstance().create(cfg);
 	}
@@ -5854,10 +5719,6 @@ var DefaultAbilitySelectionStrategy = class {
 };
 //#endregion
 //#region src/shared/engine/battle-v5/abilities/BasicAttack.ts
-/**
-* 普攻技能
-* 当没有可用技能时使用
-*/
 var BasicAttack = class extends ActiveSkill {
 	_damageEffect;
 	constructor() {
@@ -5872,9 +5733,6 @@ var BasicAttack = class extends ActiveSkill {
 		} });
 		this.tags.addTags([GameplayTags.ABILITY.CHANNEL.PHYSICAL, GameplayTags.ABILITY.KIND.BASIC]);
 	}
-	/**
-	* 执行普攻
-	*/
 	executeSkill(caster, target) {
 		const context = EffectExecutionContextV3.activeAbility({
 			owner: caster,
@@ -5889,15 +5747,15 @@ var BasicAttack = class extends ActiveSkill {
 //#endregion
 //#region src/shared/engine/battle-v5/units/AbilityContainer.ts
 /**
-* AbilityContainer - 技能容器
+* AbilityContainer -
 *
-* 职责：
-* - 管理单位的所有技能（存储、添加、移除）
-* - 保存自动战斗的技能选择策略
 *
-* 不负责：
-* - 目标选择（由 TargetSelectionSystem 处理）
-* - 技能执行（由 AbilityExecutionSystem 处理）
+* -
+* -
+*
+*
+* -  TargetSelectionSystem
+* -  AbilityExecutionSystem
 */
 var AbilityContainer = class AbilityContainer {
 	_abilities = /* @__PURE__ */ new Map();
@@ -5908,9 +5766,6 @@ var AbilityContainer = class AbilityContainer {
 	constructor(owner) {
 		this._owner = owner;
 	}
-	/**
-	* 获取所有可用技能（供外部查询使用，保留兼容性并优化逻辑）
-	*/
 	getAvailableAbilities(target) {
 		return Array.from(this._abilities.values()).filter((ability) => ability instanceof ActiveSkill).filter((ability) => {
 			const policy = ability.targetPolicy;
@@ -5955,9 +5810,6 @@ var AbilityContainer = class AbilityContainer {
 		this._defaultAttack.setOwner(this._owner);
 		this._defaultAttack.setActive(true);
 	}
-	/**
-	* 更新所有技能的冷却时间
-	*/
 	tickAbilitiesCooldown() {
 		for (const ability of this._abilities.values()) if (ability instanceof ActiveSkill) ability.tickCooldown();
 	}
@@ -5979,9 +5831,6 @@ var AbilityContainer = class AbilityContainer {
 	getAllAbilities() {
 		return Array.from(this._abilities.values());
 	}
-	/**
-	* 获取所有技能的快照
-	*/
 	getSnapshots() {
 		return Array.from(this._abilities.values()).map((ability) => {
 			if (ability instanceof ActiveSkill) return {
@@ -6021,7 +5870,7 @@ var AbilityContainer = class AbilityContainer {
 //#endregion
 //#region src/shared/engine/battle-v5/units/AttributeSet.ts
 /**
-* 外部注入型二级属性（base=0，isFloat=true，完全由装备/Buff/命格提供）
+* base=0isFloat=true/Buff/
 */
 var EXTERNAL_SECONDARY_ATTRS = /* @__PURE__ */ new Set([
 	AttributeType.ARMOR_PENETRATION,
@@ -6036,13 +5885,13 @@ function curve(x, scale, cap) {
 	return cap * value / (value + scale);
 }
 /**
-* 属性类 - 管理单个属性的基础值和修改器
+*  -
 *
-* 修改器计算流程（6阶段）：
-* OVERRIDE（直接覆盖）> BASE(固定值或派生公式) → FIXED → ADD → MULTIPLY → FINAL
+* 6
+* OVERRIDE> BASE() → FIXED → ADD → MULTIPLY → FINAL
 *
-* 对于派生型属性（baseValueFn 存在），getBaseValue() 返回公式结算值，
-* setBaseValue() 无效（公式由构造时绑定，不可外部覆写）。
+* baseValueFn getBaseValue()
+* setBaseValue()
 */
 var Attribute = class {
 	type;
@@ -6056,7 +5905,7 @@ var Attribute = class {
 		this._isFloat = isFloat;
 		this._baseValueFn = baseValueFn;
 	}
-	/** 是否为派生型属性（base 由公式推算） */
+	/** base  */
 	isDerived() {
 		return !!this._baseValueFn;
 	}
@@ -6077,15 +5926,15 @@ var Attribute = class {
 		return this._isFloat ? Math.max(0, final) : Math.max(0, Math.floor(final));
 	}
 	/**
-	* 返回不含 modifier 的基础值。
-	* 派生属性返回公式结算值（即玩家面板的"底座"）。
+	*  modifier
+	* ""
 	*/
 	getBaseValue() {
 		return this._computeBase();
 	}
 	/**
-	* 设置存储的基础值。
-	* 派生属性（有 baseValueFn）调用此方法无效，其 base 由公式决定。
+	*
+	*  baseValueFn base
 	*/
 	setBaseValue(value) {
 		if (this._baseValueFn) return;
@@ -6109,33 +5958,33 @@ var Attribute = class {
 	}
 };
 /**
-* 六维属性系统 + 派生二级属性体系
+*  +
 *
-* 主属性（六维，整数，默认 10）：
-* - VITALITY  (体魄)    — 气血上限、少量法术防御
-* - STRENGTH  (力道)    — 物理攻击
-* - SPIRIT    (灵力)    — 法术攻击、少量法力
-* - ENDURANCE (根骨)    — 物理防御、少量气血上限
-* - SPEED     (身法)    — 行动速度、闪避率、命中
-* - WILLPOWER (神识)    — 法防、法力、控制命中与抗性
+*  10
+* - VITALITY  ()    —
+* - STRENGTH  ()    —
+* - SPIRIT    ()    —
+* - ENDURANCE ()    —
+* - SPEED     ()    —
+* - WILLPOWER ()    —
 *
-* 派生型二级属性（浮点，base=公式，modifier 可叠加）：
-* - ATK                物理攻击   = 40 + STRENGTH×3.5
-* - DEF                物理防御   = 10 + ENDURANCE×1.75
-* - MAGIC_ATK          法术攻击   = 40 + SPIRIT×3.5
-* - MAGIC_DEF          法术防御   = 10 + WILLPOWER×1.75 + VITALITY×0.25
-* - ACTION_SPEED       行动速度   = SPEED
-* - CRIT_RATE          暴击率     = 0.05
-* - CRIT_DAMAGE_MULT   暴击伤害   = 1.5
-* - EVASION_RATE       闪避率     = 0.02 + curve(SPEED, 240, 0.24)
-* - ACCURACY           命中       = 0.05 + curve(SPEED, 240, 0.27)
-* - CONTROL_HIT        控制命中   = 0.04 + curve(WILLPOWER, 240, 0.30)
-* - CONTROL_RESISTANCE 控制抗性   = 0.04 + curve(WILLPOWER, 240, 0.34)
-* - MAX_HP             最大气血   = 400 + VITALITY×20 + ENDURANCE×3
-* - MAX_MP             最大法力   = 200 + SPIRIT×4 + WILLPOWER×10
+* base=modifier
+* - ATK                   = 40 + STRENGTH×3.5
+* - DEF                   = 10 + ENDURANCE×1.75
+* - MAGIC_ATK             = 40 + SPIRIT×3.5
+* - MAGIC_DEF             = 10 + WILLPOWER×1.75 + VITALITY×0.25
+* - ACTION_SPEED          = SPEED
+* - CRIT_RATE               = 0.05
+* - CRIT_DAMAGE_MULT      = 1.5
+* - EVASION_RATE            = 0.02 + curve(SPEED, 240, 0.24)
+* - ACCURACY                  = 0.05 + curve(SPEED, 240, 0.27)
+* - CONTROL_HIT           = 0.04 + curve(WILLPOWER, 240, 0.30)
+* - CONTROL_RESISTANCE    = 0.04 + curve(WILLPOWER, 240, 0.34)
+* - MAX_HP                = 400 + VITALITY×20 + ENDURANCE×3
+* - MAX_MP                = 200 + SPIRIT×4 + WILLPOWER×10
 *
-* 外部注入型二级属性（浮点，base=0，由装备/Buff/命格提供）：
-* - ARMOR_PENETRATION、MAGIC_PENETRATION、CRIT_RESIST、CRIT_DAMAGE_REDUCTION、HEAL_AMPLIFY
+* base=0/Buff/
+* - ARMOR_PENETRATIONMAGIC_PENETRATIONCRIT_RESISTCRIT_DAMAGE_REDUCTIONHEAL_AMPLIFY
 */
 var AttributeSet = class AttributeSet {
 	_attributes = /* @__PURE__ */ new Map();
@@ -6250,13 +6099,13 @@ var AttributeSet = class AttributeSet {
 		return result;
 	}
 	/**
-	* 气血 = 340 + VITALITY×16.2
+	*  = 340 + VITALITY×16.2
 	*/
 	getMaxHp() {
 		return this.getValue(AttributeType.MAX_HP);
 	}
 	/**
-	* 法力 = 200 + SPIRIT×10.8 + WILLPOWER×5.4
+	*  = 200 + SPIRIT×10.8 + WILLPOWER×5.4
 	*/
 	getMaxMp() {
 		return this.getValue(AttributeType.MAX_MP);
@@ -6278,12 +6127,12 @@ var AttributeSet = class AttributeSet {
 //#endregion
 //#region src/shared/engine/battle-v5/units/BuffContainer.ts
 /**
-* BuffContainer - Buff 容器
+* BuffContainer - Buff
 *
-* GAS+EDA 架构设计：
-* - 管理 Unit 身上的所有 Buff
-* - 负责调用 Buff 的生命周期方法（setOwner → onActivate → onDeactivate）
-* - 处理标签免疫检查和堆叠规则
+* GAS+EDA
+* -  Unit  Buff
+* -  Buff setOwner → onActivate → onDeactivate
+* -
 */
 var BuffContainer = class BuffContainer {
 	_buffs = /* @__PURE__ */ new Map();
@@ -6292,16 +6141,16 @@ var BuffContainer = class BuffContainer {
 		this._owner = owner;
 	}
 	/**
-	* 添加 Buff
-	* @param buff 要添加的 Buff
-	* @param source Buff 来源（通常是施法者），用于 DOT 伤害归属等
+	*  Buff
+	* @param buff  Buff
+	* @param source Buff  DOT
 	*/
 	addBuff(buff, source, origin) {
 		this._applyBuff(buff, source, origin, "runtime");
 	}
 	/**
-	* 绑定战斗开始前已经存在的 Buff。
-	* 初始化状态只进入首帧快照，不产生战斗中的申请、触发或可见事实。
+	*  Buff
+	*
 	*/
 	initializeBuff(buff, source, origin) {
 		this._applyBuff(buff, source, origin, "initialization");
@@ -6356,7 +6205,7 @@ var BuffContainer = class BuffContainer {
 		if (mode === "runtime") this._publishAppliedEvent(buff, attribution, publishedAddEvent.trace, source, origin);
 	}
 	/**
-	* 移除 BUFF（手动移除，如驱散）
+	*  BUFF
 	*/
 	removeBuff(buffId, origin) {
 		this._removeBuffWithReason(buffId, "manual", origin);
@@ -6408,7 +6257,7 @@ var BuffContainer = class BuffContainer {
 		return buff.getLayer();
 	}
 	/**
-	* 移除 BUFF（过期）
+	*  BUFF
 	*/
 	removeBuffExpired(buffId, origin) {
 		this._removeBuffWithReason(buffId, "expired", origin);
@@ -6849,8 +6698,8 @@ var Unit = class Unit {
 		this.currentMp = Math.min(this.currentMp, this.maxMp);
 	}
 	/**
-	* 仅用于战斗单元组装完成后的初始状态。
-	* 战斗中的派生属性刷新必须继续使用 updateDerivedStats，避免隐式治疗。
+	*
+	*  updateDerivedStats
 	*/
 	initializeCurrentResourcesToMax() {
 		this.currentHp = this.maxHp;
@@ -6870,9 +6719,6 @@ var Unit = class Unit {
 			this.currentShield = Math.max(0, Math.round(options.shield));
 		}
 	}
-	/**
-	* 增加护盾
-	*/
 	addShield(amount) {
 		if (amount <= 0) return;
 		this.currentShield += Math.round(amount);
@@ -6899,8 +6745,8 @@ var Unit = class Unit {
 		this.currentShield = Math.max(0, Math.round(amount));
 	}
 	/**
-	* 扣除护盾
-	* @returns 剩余未被护盾抵扣的伤害
+	*
+	* @returns
 	*/
 	absorbDamage(damage) {
 		if (this.currentShield <= 0) return damage;
@@ -6938,7 +6784,7 @@ var Unit = class Unit {
 	}
 	/**
 	* @param amount
-	* @returns 削减了多少法力（如果 amount 大于当前法力，则削减当前法力的全部）
+	* @returns  amount
 	*/
 	takeMp(amount) {
 		if (amount < 0) {
@@ -7236,18 +7082,18 @@ function cloneJson(value) {
 //#endregion
 //#region src/shared/engine/battle-v5/systems/ActionExecutionSystem.ts
 /**
-* ActionExecutionSystem - 行动执行系统
+* ActionExecutionSystem -
 *
-* EDA 架构设计：
-* - 订阅 SkillPreCastEvent（施法前摇事件）
-* - 检查施法是否被打断
-* - 发布 SkillCastEvent（技能正式释放事件）
-* - 调用 Ability.execute() 执行技能效果
+* EDA
+* -  SkillPreCastEvent
+* -
+* -  SkillCastEvent
+* -  Ability.execute()
 *
-* 职责边界：
-* - 此系统负责：施法流程控制、打断判定、技能执行
-* - AbilityContainer 负责：技能筛选、发布前摇事件
-* - ActiveSkill.execute 负责：MP消耗、冷却启动、技能效果
+*
+* -
+* - AbilityContainer
+* - ActiveSkill.execute MP
 */
 var ActionExecutionSystem = class {
 	eventBus;
@@ -7262,8 +7108,8 @@ var ActionExecutionSystem = class {
 		this._handlers.set("SkillPreCastEvent", preCastHandler);
 	}
 	/**
-	* 处理施法前摇事件
-	* EDA 模式：通过订阅 SkillPreCastEvent 被动触发
+	*
+	* EDA  SkillPreCastEvent
 	*/
 	_onSkillPreCast(event) {
 		const eventTrace = event.trace;
@@ -7478,9 +7324,6 @@ var ActionExecutionSystem = class {
 			});
 		});
 	}
-	/**
-	* 销毁系统，取消订阅
-	*/
 	destroy() {
 		for (const [eventType, handler] of this._handlers) this.eventBus.unsubscribe(eventType, handler);
 		this._handlers.clear();
@@ -7518,20 +7361,20 @@ function calculateSpiritualRootDamageMultiplier(event) {
 //#endregion
 //#region src/shared/engine/battle-v5/systems/DamageSystem.ts
 /**
-* DamageSystem - 伤害系统
+* DamageSystem -
 *
-* EDA 架构设计：
-* - 订阅 SkillCastEvent，执行命中判定，发布 DamageSegmentRequestedEvent
-* - 订阅 DamageSegmentRequestedEvent，先完成数值结算，再由较低优先级处理最终应用
+* EDA
+* -  SkillCastEvent DamageSegmentRequestedEvent
+* -  DamageSegmentRequestedEvent
 *
-* 统一伤害管道：
+*
 * ┌─────────────────────────────────────────────────────────────────────┐
-* │  技能伤害: SkillCastEvent → HitCheckEvent → DamageSegmentRequestedEvent     │
-* │  DOT伤害:  ActionPreEvent ─────────────────→ DamageSegmentRequestedEvent     │
-* │  反伤等:   其他来源 ──────────────────────→ DamageSegmentRequestedEvent     │
+* │  : SkillCastEvent → HitCheckEvent → DamageSegmentRequestedEvent     │
+* │  DOT:  ActionPreEvent ─────────────────→ DamageSegmentRequestedEvent     │
+* │  :    ──────────────────────→ DamageSegmentRequestedEvent     │
 * └─────────────────────────────────────────────────────────────────────┘
 *                              ↓
-*         DamageSegmentRequestedEvent → [数值结算] → [护盾/免疫响应] → 气血更新 → DamageSegmentAppliedEvent
+*         DamageSegmentRequestedEvent → [] → [/] →  → DamageSegmentAppliedEvent
 */
 var DamageSystem = class {
 	eventBus;
@@ -7554,8 +7397,8 @@ var DamageSystem = class {
 		this._handlers.set("DamageSegmentRequestedEvent:apply", damageApplyHandler);
 	}
 	/**
-	* 响应技能释放事件，执行命中判定
-	* 流程：SkillCastEvent → HitCheckEvent → DamageSegmentRequestedEvent
+	*
+	* SkillCastEvent → HitCheckEvent → DamageSegmentRequestedEvent
 	*/
 	_onSkillCast(event) {
 		const { caster, target, ability } = event;
@@ -7622,17 +7465,17 @@ var DamageSystem = class {
 		event.isResisted = hitCheckEvent.isResisted;
 	}
 	/**
-	* 响应伤害请求事件，执行减伤、随机浮动和伤害应用
-	* 所有伤害来源（技能、DOT、反伤）都走此管道
 	*
-	* 统一结算管道顺序：
-	* ① 按伤害类型计算有效防御（物理DEF/法术DEF/真伤）
-	* ② 应用平滑防御 A²/(A+D)
-	* ③ 应用现有增伤/减伤乘区
-	* ④ 应用灵根共鸣/失配倍率
-	* ⑤ 暴击判定（减伤后）
-	* ⑥ 随机浮动 (0.9~1.1)
-	* ⑦ 最小伤害保证 + 四舍五入
+	* DOT
+	*
+	*
+	* ① DEF/DEF/
+	* ②  A²/(A+D)
+	* ③ /
+	* ④ /
+	* ⑤
+	* ⑥  (0.9~1.1)
+	* ⑦  +
 	*/
 	_onDamageRequestCalculate(event) {
 		if (!event.target.isAlive()) return;
@@ -7723,9 +7566,6 @@ var DamageSystem = class {
 		if (attackerRank === void 0 || defenderRank === void 0) return 1;
 		return getRealmDamagePressureMultiplier(attackerRank - defenderRank);
 	}
-	/**
-	* 更新目标气血，发布受击事件
-	*/
 	_updateTargetHealth(damageEvent, damageType) {
 		const { target, finalDamage, caster, ability, buff, isCritical, critMultiplier, canLifesteal } = damageEvent;
 		if (finalDamage <= 0) return;
@@ -7821,9 +7661,6 @@ var DamageSystem = class {
 			});
 		}
 	}
-	/**
-	* 销毁系统，取消订阅
-	*/
 	destroy() {
 		for (const [eventType, handler] of this._handlers) this.eventBus.unsubscribe(eventType.split(":", 1)[0], handler);
 		this._handlers.clear();
@@ -8423,9 +8260,9 @@ function getGameConceptVariantLabel(key, variant) {
 //#endregion
 //#region src/shared/engine/battle-v5/effects/affixText/attributes.ts
 /**
-* 属性 → 中文标签的唯一字典。
+*  →
 *
-* 所有面向玩家的文案（词缀渲染、战报、UI）都应从这里引用，避免在多处重复定义。
+* UI
 */
 var ATTR_LABELS = {
 	[AttributeType.VITALITY]: getGameConceptLabel("vitality"),
@@ -8460,11 +8297,11 @@ function attrLabel(attrType) {
 //#endregion
 //#region src/shared/engine/battle-v5/effects/affixText/format.ts
 /**
-* 词缀面向玩家的数值格式化。
 *
-* 与战斗日志 (`effectTextFormat`) 的差异：
-*   - 百分比默认四舍五入到整数（34%而非33.75%），更简洁。
-*   - 数值默认最多保留 1 位小数，去除多余零。
+*
+*  (`effectTextFormat`)
+*   - 34%33.75%
+*   -  1
 */
 function formatAffixNumber(value, maxDigits = 1) {
 	if (!Number.isFinite(value)) return "0";
@@ -8472,7 +8309,7 @@ function formatAffixNumber(value, maxDigits = 1) {
 	return value.toFixed(maxDigits).replace(/\.?0+$/, "");
 }
 /**
-* `0.3375` → `"34%"`；`0.015` → `"1.5%"`
+* `0.3375` → `"34%"``0.015` → `"1.5%"`
 */
 function formatAffixPercent(value) {
 	if (!Number.isFinite(value)) return "0%";
@@ -8638,7 +8475,7 @@ function describeDamageRequestListener(scope) {
 	}
 }
 /**
-* 把 listenerSpec 翻译成中文前缀。无 listener（静态属性词条）返回空串。
+*  listenerSpec  listener
 */
 function describeListener(spec, context) {
 	if (!spec) return "";
@@ -8774,12 +8611,12 @@ function describeApplyBuffText(buff, chance, target, describeEffect) {
 //#endregion
 //#region src/shared/engine/battle-v5/effects/affixText/values.ts
 /**
-* 格式化一个 ScalableValue，例如：
+*  ScalableValue
 *   { base: 38 }                                  → "38"
-*   { base: 38, attribute: 'willpower', coefficient: 0.29 } → "38 + 神识×29%"
-*   { attribute: 'spirit', coefficient: 0.5 }     → "灵力×50%"
-*   { targetMaxHpRatio: 0.08 }                    → "目标气血8%"
-*   { targetMaxMpRatio: 0.08 }                    → "目标法力8%"
+*   { base: 38, attribute: 'willpower', coefficient: 0.29 } → "38 + ×29%"
+*   { attribute: 'spirit', coefficient: 0.5 }     → "×50%"
+*   { targetMaxHpRatio: 0.08 }                    → "8%"
+*   { targetMaxMpRatio: 0.08 }                    → "8%"
 */
 function formatScalableValue(value) {
 	const parts = [];
@@ -8793,15 +8630,15 @@ function formatScalableValue(value) {
 //#endregion
 //#region src/shared/engine/battle-v5/effects/affixText/effectCore.ts
 /**
-* EffectConfig → 词缀效果核心文本（"动词 + 数值"）。
+* EffectConfig → " + "
 *
-* 约定：这里只描述"做什么 + 多少"，**不**包含触发条件、**不**包含监听语境前缀。
-* 条件与监听由 conditions.ts / listeners.ts 分别处理，再由 index.ts 统一拼接。
+* " + "********
+*  conditions.ts / listeners.ts  index.ts
 *
-* 例：
-*   reflect 34%            → "反弹 34% 伤害"
-*   shield {base=38, ...}  → "获得护盾 38 + 神识×29%"
-*   heal mp                → "回复法力 12 + 灵力×40%"
+*
+*   reflect 34%            → " 34% "
+*   shield {base=38, ...}  → " 38 + ×29%"
+*   heal mp                → " 12 + ×40%"
 */
 function describeEffectCore(effect, context = {}) {
 	const describeChildren = (effects) => effects.map((child) => describeEffectCore(child, context)).join("、");
@@ -8927,32 +8764,32 @@ function describeTransform(params) {
 /**
 * BattleStateRecorder
 *
-* 职责：在每次行动前后对双方单位进行状态快照，并计算帧间 Delta。
+*  Delta
 *
-* 采样时机（由单回合解析器与自动战斗外壳触发）：
-*  1. battle_init  — 战斗开始后（基线快照）
-*  2. action_pre   — 每个单位的 ActionPreEvent 发布并处理完毕后
-*  3. action_post  — 该单位的动作执行、行动型 Buff 过期、CD 刷新完成后
-*  4. round_post   — 回合结束周期结算与回合型 Buff 过期完成后
-*  5. battle_end   — 战斗结束后（终态快照）
 *
-* 设计原则：
-*  - 与日志系统完全解耦，不依赖 EventBus
-*  - 只记录 Unit 的公开 API，不侵入内部状态
-*  - Delta 仅包含实际变化的字段（控制体积）
+*  1. battle_init  —
+*  2. action_pre   —  ActionPreEvent
+*  3. action_post  —  Buff CD
+*  4. round_post   —  Buff
+*  5. battle_end   —
+*
+*
+*  -  EventBus
+*  -  Unit  API
+*  - Delta
 */
 var BattleStateRecorder = class {
 	_frames = [];
 	_frameCounter = 0;
-	/** 上一帧各单位的快照，用于计算 delta */
+	/**  delta */
 	_prevSnapshots = /* @__PURE__ */ new Map();
 	/**
-	* 记录一个状态帧
-	* @param phase         帧所在阶段
-	* @param turn          当前回合数
-	* @param units         所有参战单位
-	* @param actorId       当前行动者 ID（action_pre / action_post 时传入）
-	* @param sourceSequenceId  关联 V3 战斗序列 ID（可选，供前端联动使用）
+	*
+	* @param phase
+	* @param turn
+	* @param units
+	* @param actorId        IDaction_pre / action_post
+	* @param sourceSequenceId   V3  ID
 	*/
 	record(phase, turn, units, actorId, sourceSequenceId) {
 		const snapshots = {};
@@ -8978,11 +8815,10 @@ var BattleStateRecorder = class {
 		};
 		this._frames.push(frame);
 	}
-	/** 获取所有状态帧的副本 */
 	getFrames() {
 		return [...this._frames];
 	}
-	/** 获取结构化时间线（含单位 ID/名称映射） */
+	/**  ID/ */
 	getTimeline(units) {
 		const unitIds = units.map((u) => u.id);
 		const unitNames = {};
@@ -9183,7 +9019,7 @@ var BattleStateRecorder = class {
 		};
 		return delta;
 	}
-	/** 判断 delta 是否包含任何实际变化 */
+	/**  delta  */
 	_hasDelta(delta) {
 		return !!(delta.hp || delta.mp || delta.shield || delta.attrs || delta.buffsAdded?.length || delta.buffsRemoved?.length || delta.buffsUpdated?.length || delta.combatResourcesChanged?.length || delta.cooldownsChanged?.length || delta.actionStatesChanged || delta.canActChanged || delta.aliveChanged);
 	}
@@ -9191,12 +9027,12 @@ var BattleStateRecorder = class {
 //#endregion
 //#region src/shared/engine/battle-v5/systems/TargetSelectionSystem.ts
 /**
-* TargetSelectionSystem - 目标选择系统
+* TargetSelectionSystem -
 *
-* EDA 架构设计：
-* - 根据 TargetPolicy 选择目标
-* - 支持队伍筛选、过滤器、范围选择
-* - 未来可订阅 SkillSelectedEvent 进行自动目标选择
+* EDA
+* -  TargetPolicy
+* -
+* -  SkillSelectedEvent
 */
 var TargetSelectionSystem = class {
 	_handlers = /* @__PURE__ */ new Map();
@@ -9205,11 +9041,11 @@ var TargetSelectionSystem = class {
 	}
 	_subscribeToEvents() {}
 	/**
-	* 选择目标
-	* @param caster 施法者
-	* @param policy 目标策略
-	* @param allUnits 所有战斗单位
-	* @returns 选中的目标列表
+	*
+	* @param caster
+	* @param policy
+	* @param allUnits
+	* @returns
 	*/
 	selectTargets(caster, policy, allUnits) {
 		const candidates = this.getTargetCandidates(caster, policy, allUnits);
@@ -9259,9 +9095,6 @@ var TargetSelectionSystem = class {
 			default: return units.slice(0, 1);
 		}
 	}
-	/**
-	* 销毁系统
-	*/
 	destroy() {
 		this._handlers.clear();
 	}

@@ -27,7 +27,7 @@ function getRequiredEnv(name: 'BETTER_AUTH_SECRET' | 'BETTER_AUTH_URL') {
  *
  * Better Auth  email  z.email()
  *  UTF-8  [0-9a-f]
- *  local part`u_<hex>@xiantu.local`
+ *  local part`u_<hex>@daoyou.local`
  *  user.name
  *  src/react-app/lib/auth/authState.ts
  */
@@ -37,7 +37,7 @@ export function daohaoToAuthEmail(daohao: string): string {
     (byte) => byte.toString(16).padStart(2, '0'),
   ).join('');
 
-  return `u_${hex}@xiantu.local`;
+  return `u_${hex}@daoyou.local`;
 }
 
 const zhAuthTranslations = {
