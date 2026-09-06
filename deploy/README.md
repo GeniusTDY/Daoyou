@@ -7,7 +7,7 @@
 ## 快速开始
 
 ```bash
-# 1. 拷贝整个 offline/ 目录到目标机
+# 1. 拷贝整个 deploy/ 目录到目标机
 # 2. 首次启动（自动创建 config/.env 并写入随机密钥，随后启动全部服务）
 ./start.sh
 
@@ -29,7 +29,7 @@
 ## 目录结构
 
 ```
-offline/
+deploy/
 ├── bin/            # 自包含二进制：bun / pg / redis / nats / migrate
 ├── app/            # 后端 bundle（index.js + assets）
 ├── web/            # 前端构建产物（后端同源托管）
