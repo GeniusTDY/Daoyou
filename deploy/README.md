@@ -1,6 +1,6 @@
 # 离线部署包
 
-> 断网内网环境一键部署 · 内置全部运行时 · 无需安装任何系统软件 · 无需联网拉取依赖
+> 断网内网环境一键部署 · 内置全部运行时 · 无需安装任何系统软件 · 无需联网拉取依赖 · LLM 默认开启
 
 ---
 
@@ -98,10 +98,10 @@ ADMIN_DAOHAOS=admin,张三
 游戏大量生成型功能（炼丹、命名、黑市谈判、人物生成、副本叙事等）依赖 LLM。
 离线部署通过**自带私有的内网 OpenAI 兼容推理服务**（[Ollama](https://ollama.com) / [vLLM](https://docs.vllm.ai) 等）来驱动，只会访问局域网、不依赖公网。
 
-在 `config/.env` 里配置三处即可（配置模板见 `config/.env.example`）：
+在 `config/.env` 里配置三处即可（配置模板见 `config/.env.example`，**默认已开启并指向本机 Ollama**）：
 
 ```bash
-LLM_PROVIDER=openai/<模型名>       # 如 openai/qwen2.5:7b
+LLM_PROVIDER=openai/<模型名>       # 如 openai/qwen2.5（注意：模型名不能含 ":"，Ollama 标签省略 tag）
 OPENAI_BASE_URL=http://<内网IP>:<端口>/v1
 OPENAI_API_KEY=<任意非空值>         # 内网服务通常不校验 key，但必须有值才会启用
 ```
@@ -117,5 +117,5 @@ OPENAI_API_KEY=<任意非空值>         # 内网服务通常不校验 key，但
 - **同源托管**：前端与后端同一进程，无需单独部署、无跨域。
 - **来源自动信任**：登录时自动信任请求头 Origin/Host，`PUBLIC_WEB_ORIGINS` 留空即可。
 - **数据备份**：备份 `data/` 目录即备份全部数据（PG/Redis/NATS）。
-- **LLM**：默认关闭。如需生成型玩法，按上面"接入离线内网 LLM"指向自备内网推理端；未配置时该玩法降级、不影响其余功能。
+- **LLM**：默认开启，指向本机 Ollama（`http://127.0.0.1:11434`）。若本机无 Ollama/未拉取模型，生成型玩法自动优雅降级，不影响其余功能；指向内网 vLLM/Ollama 见上面"接入离线内网 LLM"。
 - **SMTP**：默认关闭，不影响其余功能。
