@@ -104,6 +104,13 @@ function Start-Pg {
             return $false
         }
     }
+    # 确保 PG 运行所需的空子目录齐全（git 不跟踪空目录，内置库提交时可能缺失它们，
+    # 缺失会导致启动时报 could not open directory "pg_notify"）
+    $pgSubdirs = @('pg_commit_ts','pg_dynshmem','pg_logical','pg_multixact','pg_notify',`
+        'pg_replslot','pg_serial','pg_snapshots','pg_stat_tmp','pg_tblspc','pg_twophase','pg_xact')
+    foreach ($d in $pgSubdirs) {
+        New-Item -ItemType Directory -Force -Path (Join-Path $pgData $d) | Out-Null
+    }
     if (Test-PgUp) { Write-Log '[pg] already running'; return $true }
     Write-Log "[pg] starting on 127.0.0.1:$env:PG_PORT"
     & (Get-BinPath 'pg\bin\pg_ctl') -D $pgData -l $pgLog start -o "-p $env:PG_PORT -c listen_addresses=127.0.0.1" | Out-Null
@@ -132,6 +139,9 @@ function Start-Pg {
         & $psql -h 127.0.0.1 -p $env:PG_PORT -U postgres -d postgres -c "CREATE DATABASE $env:PG_DB OWNER $env:PG_USER" *> $null
         if ($LASTEXITCODE -ne 0) { Write-Log '[pg] create database FAILED'; return $false }
     }
+    # 口令对齐（幂等）：把 $env:PG_USER 角色口令统一成配置的 PG_PASSWORD，
+    # 避免复用内置库时其预置口令与配置不一致导致 TCP 认证失败
+    & $psql -h 127.0.0.1 -p $env:PG_PORT -U postgres -d postgres -c "ALTER ROLE $env:PG_USER PASSWORD '$env:PG_PASSWORD'" *> $null
     Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue
     Write-Log '[pg] ready'
     return $true

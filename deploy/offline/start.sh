@@ -109,6 +109,9 @@ start_pg() {
   # 提前建好 socket 目录并交给 PG 运行用户（root 场景由 daoyou 运行 PG）
   mkdir -p "$PG_SOCK"
   chown -R "$PG_OS_USER" "$PG_SOCK" 2>/dev/null || true
+  # 数据目录所有权与 PG 运行用户一致：内置库被拷贝/检出后可能属 root，
+  # 否则以非 root 运行 PG 会因读取 pg_control 等文件被拒（Permission denied）
+  chown -R "$PG_OS_USER" "$PG_DATA" 2>/dev/null || true
   if [ ! -f "$PG_DATA/PG_VERSION" ]; then
     log "[pg] initdb -> $PG_DATA (user: $PG_OS_USER)"
     mkdir -p "$PG_DATA" && chown -R "$PG_OS_USER" "$PG_DATA"
@@ -118,6 +121,14 @@ start_pg() {
       >"$LOG/pg-initdb.log" 2>&1 \
       || { log "[pg] initdb FAILED, see $LOG/pg-initdb.log"; tail -n 20 "$LOG/pg-initdb.log"; return 1; }
   fi
+  # 确保 PG 运行所需的空子目录齐全（git 不跟踪空目录，内置库提交时可能缺失它们，
+  # 缺失会导致启动时报 could not open directory "pg_notify"）
+  local pg_subdirs=(pg_commit_ts pg_dynshmem pg_logical pg_multixact pg_notify \
+    pg_replslot pg_serial pg_snapshots pg_stat_tmp pg_tblspc pg_twophase pg_xact)
+  for d in "${pg_subdirs[@]}"; do
+    mkdir -p "$PG_DATA/$d"
+    chown "$PG_OS_USER" "$PG_DATA/$d" 2>/dev/null || true
+  done
   if pg_is_up; then
     log "[pg] already running"
     return 0
@@ -144,6 +155,9 @@ start_pg() {
     log "[pg] create database $PG_DB"
     "${psql[@]}" "CREATE DATABASE $PG_DB OWNER $PG_USER" >/dev/null
   fi
+  # 口令对齐（幂等）：把 $PG_USER 角色口令统一成配置的 PG_PASSWORD，
+  # 避免复用内置库时其预置口令与配置不一致导致 TCP 认证失败
+  "${psql[@]}" "ALTER ROLE $PG_USER PASSWORD '$PG_PASSWORD'" >/dev/null
   log "[pg] ready"
 }
 
