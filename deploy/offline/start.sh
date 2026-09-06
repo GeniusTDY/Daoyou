@@ -20,6 +20,10 @@ mkdir -p "$DATA" "$LOG"
 
 PG_BIN="$BIN/pg/bin"
 PG_DATA="$DATA/pg"
+# Unix socket 目录：自带的 initdb 服务端默认把 socket 放 /tmp，而自带 psql 客户端
+# 编译默认去 /var/run/postgresql 找，二者不一致导致全新机器引导建库失败。
+# 这里统一固定到数据目录下的子目录，客户端显式 -h 指向它，彻底消除该错位。
+PG_SOCK="${PG_SOCK:-$DATA/pg-sock}"
 PG_OS_USER="${PG_OS_USER:-daoyou}"
 REDIS_BIN="$BIN/redis"
 NATS_BIN="$BIN/nats"
@@ -102,6 +106,9 @@ pg_as_user() {
 
 start_pg() {
   ensure_pg_user
+  # 提前建好 socket 目录并交给 PG 运行用户（root 场景由 daoyou 运行 PG）
+  mkdir -p "$PG_SOCK"
+  chown -R "$PG_OS_USER" "$PG_SOCK" 2>/dev/null || true
   if [ ! -f "$PG_DATA/PG_VERSION" ]; then
     log "[pg] initdb -> $PG_DATA (user: $PG_OS_USER)"
     mkdir -p "$PG_DATA" && chown -R "$PG_OS_USER" "$PG_DATA"
@@ -118,7 +125,7 @@ start_pg() {
   log "[pg] starting on 127.0.0.1:$PG_PORT"
   touch "$LOG/pg.log" && chown "$PG_OS_USER" "$LOG/pg.log"
   pg_as_user "$PG_BIN/pg_ctl" -D "$PG_DATA" -l "$LOG/pg.log" start \
-    -o "-p $PG_PORT -c listen_addresses=127.0.0.1" >/dev/null 2>&1
+    -o "-p $PG_PORT -c listen_addresses=127.0.0.1 -c unix_socket_directories=$PG_SOCK" >/dev/null 2>&1
 
   local i=0
   until pg_is_up; do
@@ -128,7 +135,7 @@ start_pg() {
   done
 
   # 建用户与库（幂等）：经 unix socket（local=trust）以 postgres 身份管理
-  local psql=( "$PG_BIN/psql" -p "$PG_PORT" -U postgres -d postgres -tAc )
+  local psql=( "$PG_BIN/psql" -h "$PG_SOCK" -p "$PG_PORT" -U postgres -d postgres -tAc )
   if [ "$("${psql[@]}" "SELECT 1 FROM pg_roles WHERE rolname='$PG_USER'")" != "1" ]; then
     log "[pg] create role $PG_USER"
     "${psql[@]}" "CREATE ROLE $PG_USER LOGIN PASSWORD '$PG_PASSWORD'" >/dev/null

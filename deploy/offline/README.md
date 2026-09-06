@@ -8,11 +8,14 @@
 
 ```bash
 # 1. 拷贝整个 offline/ 目录到目标机
-# 2. 生成随机密钥
-./gen-secrets.sh        # Linux
-# gen-secrets.bat       # Windows
+# 2. 生成配置（含随机密钥）
+cp config/.env.example config/.env   # 首次：复制模板为实际配置
+./gen-secrets.sh                     # Linux（自动写入随机密钥）
+# gen-secrets.bat                    # Windows
 
-# 3. 编辑 config/.env 中的 BETTER_AUTH_URL（实际访问地址）
+# 3. 编辑 config/.env：
+#    - BETTER_AUTH_URL：实际访问地址
+#    - 如需离线接通生成型玩法，配置内网 LLM（见下方"接入离线内网 LLM"）
 
 # 4. 启动
 ./start.sh              # Windows: start.bat
@@ -63,12 +66,33 @@ offline/
 | `BETTER_AUTH_SECRET` / `CRON_SECRET` | 随机长字符串（运行 gen-secrets 后自动生成） |
 | `APP_PORT` / `PG_PORT` / `REDIS_PORT` / `NATS_PORT` | 端口，占用时调整 |
 | `DATABASE_URL` / `REDIS_URL` / `NATS_SERVERS` | 连接串，改端口时需同步修改 |
+| `LLM_PROVIDER` / `OPENAI_BASE_URL` / `OPENAI_API_KEY` | 接入内网 OpenAI 兼容推理端，接通生成型玩法（见下方） |
 
 ---
+
+## 接入离线内网 LLM（生成型玩法）
+
+游戏大量生成型功能（炼丹、命名、黑市谈判、人物生成、副本叙事等）依赖 LLM。
+离线部署通过**自带私有的内网 OpenAI 兼容推理服务**（[Ollama](https://ollama.com) / [vLLM](https://docs.vllm.ai) 等）来驱动，只会访问局域网、不依赖公网。
+
+在 `config/.env` 里配置三处即可（配置模板见 `config/.env.example`）：
+
+```bash
+LLM_PROVIDER=openai/<模型名>       # 如 openai/qwen2.5:7b
+OPENAI_BASE_URL=http://<内网IP>:<端口>/v1
+OPENAI_API_KEY=<任意非空值>         # 内网服务通常不校验 key，但必须有值才会启用
+```
+
+要点：
+- `OPENAI_API_KEY` 必须非空（写 `ollama`/`empty` 即可），代码据此判定该供应商已启用。
+- 模型名写在 `LLM_PROVIDER` 里（`openai/<模型名>`）；不写则用默认 `qwen3.7-flash`。
+- `OPENAI_BASE_URL` 也支持 `OPENAI_COMPAT_BASE_URL` 作为别名。
+- 未配置任何 LLM 时，生成型玩法按无 LLM 兜底**降级**，其余功能（战斗、任务、邮件、交易等）不受影响。
 
 ## 说明
 
 - **同源托管**：前端与后端同一进程，无需单独部署、无跨域。
 - **来源自动信任**：登录时自动信任请求头 Origin/Host，`PUBLIC_WEB_ORIGINS` 留空即可。
 - **数据备份**：备份 `data/` 目录即备份全部数据（PG/Redis/NATS）。
-- **LLM / SMTP**：离线默认关闭，不影响其余功能。
+- **LLM**：默认关闭。如需生成型玩法，按上面"接入离线内网 LLM"指向自备内网推理端；未配置时该玩法降级、不影响其余功能。
+- **SMTP**：默认关闭，不影响其余功能。
