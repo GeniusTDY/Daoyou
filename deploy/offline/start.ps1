@@ -38,8 +38,18 @@ function Q([string]$s) { return '"' + $s + '"' }
 function Load-Env {
     $envFile = Join-Path $root 'config\.env'
     if (-not (Test-Path $envFile)) {
-        Write-Host "ERROR: 找不到 $envFile" -ForegroundColor Red
-        exit 1
+        $example = Join-Path $root 'config\.env.example'
+        if (-not (Test-Path $example)) {
+            Write-Host "ERROR: 既无 config\.env 也无 config\.env.example" -ForegroundColor Red
+            exit 1
+        }
+        Copy-Item $example $envFile
+        & (Join-Path $root 'gen-secrets.ps1')
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host 'ERROR: 首次生成 config\.env 密钥失败' -ForegroundColor Red
+            exit 1
+        }
+        Write-Log '首次自举：已从模板生成 config\.env 并写入随机密钥'
     }
     Get-Content $envFile | ForEach-Object {
         $line = $_.Trim()

@@ -32,7 +32,24 @@ MIGRATE="$BIN/migrate/migrate"
 APP_JS="$ROOT/app/index.js"
 WEB_DIR="$ROOT/web"
 
+ensure_env() {
+  local env_file="$ROOT/config/.env"
+  if [ -f "$env_file" ]; then
+    return 0
+  fi
+  if [ ! -f "$ROOT/config/.env.example" ]; then
+    echo "ERROR: 既无 config/.env 也无 config/.env.example" >&2
+    return 1
+  fi
+  cp "$ROOT/config/.env.example" "$env_file" || return 1
+  "$ROOT/gen-secrets.sh" >/dev/null || return 1
+  echo "[offline] 首次自举：已从模板生成 config/.env 并写入随机密钥"
+  echo "          如需自定义端口/口令/BETTER_AUTH_URL，可编辑 config/.env 后 ./start.sh restart 生效"
+  return 0
+}
+
 # ---- 加载配置（导出到子进程环境）----
+ensure_env || exit 1
 set -a
 # shellcheck disable=SC1091
 source "$ROOT/config/.env"
