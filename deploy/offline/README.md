@@ -72,26 +72,24 @@ offline/
 
 ## 账号与管理员
 
-游戏账号使用**道号 + 密码**注册/登录，无需邮箱。系统会把道号按固定规则映射为内部邮箱
-`u_<道号hex>@xiantu.local`（道号按 UTF-8 逐字节转十六进制）。
+游戏账号使用**道号 + 密码**注册/登录，无需邮箱（系统仅在内部维护一个与道号对应的唯一标识，用户全程无感知）。
 
 > 首个注册的账号**不会自动成为管理员**，管理员需登记。
 
-**最省事的登记方式**：在 `config/.env` 中配置 `ADMIN_EMAILS`，用道号推导内部邮箱即可，**无需查用户 ID**。
-例如给道号 `admin` 的账号开管理员：
+**最省事的登记方式**：在 `config/.env` 中配置 `ADMIN_DAOHAOS`，**直接填道号即可**，无需查用户 ID、无需邮箱映射：
 
 ```bash
-ADMIN_EMAILS=u_61646d696e@xiantu.local
+# 单个道号
+ADMIN_DAOHAOS=admin
+
+# 多个道号用英文逗号分隔
+ADMIN_DAOHAOS=admin,张三
 ```
 
-| 道号 | 对应内部邮箱 |
-| --- | --- |
-| `admin` | `u_61646d696e@xiantu.local` |
-| `张三` | `u_e5bca0e4b889@xiantu.local` |
+保存后执行 `./start.sh restart` 生效，对应道号的账号即为管理员，可访问后台管理（广播、物品库、模板配置等）功能。
 
-保存后执行 `./start.sh restart` 生效，该账号即为管理员，可访问后台管理（账号管理、广播、物品库配置等）功能。
-
-> 另可用 `ADMIN_USER_IDS=<系统用户ID>` 按用户 ID 登记，但需先查库拿到 ID，一般用不到。
+> - `ADMIN_DAOHAOS` 之外，另可 `ADMIN_USER_IDS=<系统用户ID>` 按用户 ID 登记（需先查库拿到 ID，一般用不到）。
+> - **账号管理**模块需额外在 `ADMIN_USER_IDS` 登记，DAOHAOS 不覆盖该模块。
 
 ---
 
