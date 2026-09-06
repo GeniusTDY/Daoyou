@@ -106,8 +106,8 @@ function Start-Pg {
     }
     # 确保 PG 运行所需的空子目录齐全（git 不跟踪空目录，内置库提交时可能缺失它们，
     # 缺失会导致启动时报 could not open directory "pg_notify"）
-    $pgSubdirs = @('pg_commit_ts','pg_dynshmem','pg_logical','pg_multixact','pg_notify',`
-        'pg_replslot','pg_serial','pg_snapshots','pg_stat_tmp','pg_tblspc','pg_twophase','pg_xact')
+    $pgSubdirs = @('pg_commit_ts','pg_dynshmem','pg_logical','pg_logical\mappings','pg_logical\snapshots','pg_logical\replorigin','pg_multixact','pg_multixact\members','pg_multixact\offsets','pg_notify',`
+        'pg_replslot','pg_serial','pg_snapshots','pg_stat','pg_stat_tmp','pg_tblspc','pg_twophase','pg_wal\archive_status','pg_xact')
     foreach ($d in $pgSubdirs) {
         New-Item -ItemType Directory -Force -Path (Join-Path $pgData $d) | Out-Null
     }
