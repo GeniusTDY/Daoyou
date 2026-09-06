@@ -1,1 +1,1 @@
-/workspace/deploy/offline/bin/pg/bin/postgres "-D" "/workspace/deploy/offline/data/pg" "-p" "5433" "-c" "listen_addresses=127.0.0.1"
+/workspace/deploy/offline/bin/pg/bin/postgres "-D" "/workspace/deploy/offline/data/pg" "-p" "5433" "-c" "listen_addresses=127.0.0.1" "-c" "unix_socket_directories=/workspace/deploy/offline/data/pg-sock"
