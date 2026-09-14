@@ -139,11 +139,11 @@
 
 /* Define to 1 if you have the declaration of `strlcat', and to 0 if you
    don't. */
-#define HAVE_DECL_STRLCAT 1
+#define HAVE_DECL_STRLCAT 0
 
 /* Define to 1 if you have the declaration of `strlcpy', and to 0 if you
    don't. */
-#define HAVE_DECL_STRLCPY 1
+#define HAVE_DECL_STRLCPY 0
 
 /* Define to 1 if you have the declaration of `strnlen', and to 0 if you
    don't. */
@@ -429,10 +429,10 @@
 #define HAVE_STRING_H 1
 
 /* Define to 1 if you have the `strlcat' function. */
-#define HAVE_STRLCAT 1
+/* #undef HAVE_STRLCAT */
 
 /* Define to 1 if you have the `strlcpy' function. */
-#define HAVE_STRLCPY 1
+/* #undef HAVE_STRLCPY */
 
 /* Define to 1 if you have the `strnlen' function. */
 #define HAVE_STRNLEN 1
@@ -658,7 +658,7 @@
 #define PG_VERSION_NUM 160015
 
 /* A string containing the version number, platform, and C compiler */
-#define PG_VERSION_STR "PostgreSQL 16.15 on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit"
+#define PG_VERSION_STR "PostgreSQL 16.15 on x86_64-pc-linux-gnu, compiled by gcc (Debian 10.2.1-6) 10.2.1 20210110, 64-bit"
 
 /* Define to 1 to allow profiling output to be saved separately for each
    process. */

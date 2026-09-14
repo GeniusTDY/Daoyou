@@ -19,6 +19,7 @@ LOG="$ROOT/logs"
 mkdir -p "$DATA" "$LOG"
 
 PG_BIN="$BIN/pg/bin"
+export LD_LIBRARY_PATH="$BIN/pg/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 PG_DATA="$DATA/pg"
 # Unix socket 目录：自带的 initdb 服务端默认把 socket 放 /tmp，而自带 psql 客户端
 # 编译默认去 /var/run/postgresql 找，二者不一致导致全新机器引导建库失败。
