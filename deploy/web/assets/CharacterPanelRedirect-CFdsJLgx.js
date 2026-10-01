@@ -1,0 +1,1 @@
+import{t as e}from"./components-B2rQEL-Y.js";import{a as t}from"./lib-DtS6vEzd.js";import{t as n}from"./jsx-runtime-BtH0gOTJ.js";var r=n();function i({tab:n}){let[i]=t(),a=new URLSearchParams(i);return a.set(`tab`,n),(0,r.jsx)(e,{to:`/game/cultivator?${a}`,replace:!0})}export{i as t};

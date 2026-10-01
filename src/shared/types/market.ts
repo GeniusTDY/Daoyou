@@ -1,20 +1,9 @@
-import type {
-  ElementType,
-  EquipmentSlot,
-  MaterialType,
-  Quality,
-  RealmType,
-} from './constants';
-import type { PillAppearanceGrade } from './consumable';
+import type { MaterialType, Quality, RealmType } from './constants';
 import type { Material } from './cultivator';
 
 export type MarketLayer = 'common' | 'treasure' | 'heaven' | 'black';
 export type RegionProfileKey =
-  | 'tiannan'
-  | 'luanxinghai'
-  | 'dajin'
-  | 'baicao'
-  | 'default';
+  'tiannan' | 'luanxinghai' | 'dajin' | 'baicao' | 'beast' | 'default';
 
 
 export const MARKET_PRESET_FALLBACK_LAYERS: MarketLayer[] = [
@@ -108,7 +97,7 @@ export interface MysteryDetails {
   };
 }
 
-export type MarketListing = MarketListingBase &
+export type MarketMaterialListing = MarketListingBase &
   Omit<Material, 'id' | 'price' | 'quantity'> & {
     quantity: number;
     isMystery?: boolean;
@@ -117,6 +106,14 @@ export type MarketListing = MarketListingBase &
       disguisedName: string;
     };
   };
+
+export type MarketItemListing = MarketListingBase & {
+  definitionId: string;
+  name: string;
+  quantity: number;
+};
+
+export type MarketListing = MarketMaterialListing | MarketItemListing;
 
 export interface MysteryRevealContext {
   type: MaterialType;
@@ -128,59 +125,8 @@ export interface MysteryRevealContext {
   createdAt: number;
 }
 
-export type SellPhase = 'preview' | 'confirm';
-export type SellMode = 'low_bulk' | 'high_single';
-export type SellItemType = 'material' | 'artifact' | 'consumable';
-
 export interface HighTierAppraisal {
   rating: 'S' | 'A' | 'B' | 'C';
   comment: string;
   keywords: string[];
-}
-
-export interface SellPreviewItem {
-  id: string;
-  name: string;
-  rank?: Quality; // material
-  quality?: Quality; // artifact | consumable
-  appearance?: PillAppearanceGrade;
-  quantity: number;
-  unitPrice: number;
-  totalPrice: number;
-  slot?: EquipmentSlot;
-  score?: number;
-  element?: ElementType;
-}
-
-export interface SellPreviewResponse {
-  success: true;
-  itemType: SellItemType;
-  sessionId: string;
-  mode: SellMode;
-  items: SellPreviewItem[];
-  totalSpiritStones: number;
-  appraisal?: HighTierAppraisal;
-  expiresAt: number;
-}
-
-export interface SellConfirmSoldItem {
-  id: string;
-  name: string;
-  rank?: Quality; // material
-  quality?: Quality; // artifact | consumable
-  appearance?: PillAppearanceGrade;
-  quantity: number;
-  price: number;
-  slot?: EquipmentSlot;
-  score?: number;
-  element?: ElementType;
-}
-
-export interface SellConfirmResponse {
-  success: true;
-  itemType: SellItemType;
-  gainedSpiritStones: number;
-  soldItems: SellConfirmSoldItem[];
-  remainingSpiritStones: number;
-  appraisal?: HighTierAppraisal;
 }

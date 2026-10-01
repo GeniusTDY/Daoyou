@@ -94,6 +94,78 @@ function createLlmDebugFetch(sceneId: LlmSceneId, model: string): typeof fetch {
   );
 }
 
+const AI_MAX_CONCURRENT_REQUESTS = 64;
+const AI_DEFAULT_TIMEOUT_MS = 120_000;
+let activeAiRequests = 0;
+let rejectedAiRequests = 0;
+
+export function getAiRuntimeStats() {
+  return { activeRequests: activeAiRequests, rejectedRequests: rejectedAiRequests };
+}
+
+function startAiRequest(options: AiTextOptions) {
+  options.abortSignal?.throwIfAborted();
+  const timeoutMs = options.timeoutMs ?? AI_DEFAULT_TIMEOUT_MS;
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+    throw new Error('Invalid AI timeout');
+  }
+  if (activeAiRequests >= AI_MAX_CONCURRENT_REQUESTS) {
+    rejectedAiRequests += 1;
+    throw new Error('AI 服务繁忙，请稍后重试');
+  }
+  activeAiRequests += 1;
+  const controller = new AbortController();
+  const abort = () => controller.abort(options.abortSignal?.reason);
+  options.abortSignal?.addEventListener('abort', abort, { once: true });
+  const timer = setTimeout(
+    () => controller.abort(new Error('AI request timed out')),
+    timeoutMs,
+  );
+  timer.unref();
+  let released = false;
+  return {
+    signal: controller.signal,
+    release() {
+      if (released) return;
+      released = true;
+      clearTimeout(timer);
+      options.abortSignal?.removeEventListener('abort', abort);
+      activeAiRequests -= 1;
+    },
+  };
+}
+
+export async function generateAiText(options: AiTextOptions) {
+  const request = startAiRequest(options);
+  try {
+    return await generateAiTextInternal({ ...options, abortSignal: request.signal });
+  } finally {
+    request.release();
+  }
+}
+
+export async function generateAiObject<GENERATED, RESULT = GENERATED>(
+  options: AiObjectOptions<GENERATED, RESULT>,
+) {
+  const request = startAiRequest(options);
+  try {
+    return await generateAiObjectInternal({ ...options, abortSignal: request.signal });
+  } finally {
+    request.release();
+  }
+}
+
+export async function generateAiArray<ELEMENT, RESULT = ELEMENT[]>(
+  options: AiArrayOptions<ELEMENT, RESULT>,
+) {
+  const request = startAiRequest(options);
+  try {
+    return await generateAiArrayInternal({ ...options, abortSignal: request.signal });
+  } finally {
+    request.release();
+  }
+}
+
 const STRUCTURED_RETRY_OUTPUT_CHARS = 8_000;
 const STRUCTURED_RETRY_MAX_OUTPUT_TOKENS = 16_384;
 
@@ -104,6 +176,7 @@ export interface AiTextOptions {
   prompt: string;
   sceneId: LlmSceneId;
   abortSignal?: AbortSignal;
+  timeoutMs?: number;
   maxOutputTokens?: number;
   reasoning?: AiReasoning;
 }
@@ -472,7 +545,7 @@ function getStructuredRetryMaxOutputTokens(
   );
 }
 
-export async function generateAiText(options: AiTextOptions) {
+async function generateAiTextInternal(options: AiTextOptions) {
   const { model, modelName, provider } = resolveModel(options.sceneId);
   const metrics = createMetricContext(options, provider, modelName);
 
@@ -499,6 +572,7 @@ export async function generateAiText(options: AiTextOptions) {
 export function streamAiText(options: AiTextOptions) {
   const { model, modelName, provider } = resolveModel(options.sceneId);
   const metrics = createMetricContext(options, provider, modelName);
+  const request = startAiRequest(options);
   let terminalMetricRecorded = false;
 
   const recordTerminalMetric = (
@@ -509,15 +583,20 @@ export function streamAiText(options: AiTextOptions) {
       return;
     }
     terminalMetricRecorded = true;
+    request.signal.removeEventListener('abort', onRequestAbort);
+    request.release();
     recordMetrics(metrics, { status, usage });
   };
+
+  const onRequestAbort = () => recordTerminalMetric('failure');
+  request.signal.addEventListener('abort', onRequestAbort, { once: true });
 
   try {
     return streamText({
       model,
       system: options.system,
       prompt: options.prompt,
-      abortSignal: options.abortSignal,
+      abortSignal: request.signal,
       maxOutputTokens: options.maxOutputTokens,
       reasoning: options.reasoning ?? 'none',
       onError: () => recordTerminalMetric('failure'),
@@ -646,7 +725,7 @@ async function generateStructured<
   throw new Error('Unreachable structured generation state');
 }
 
-export async function generateAiObject<GENERATED, RESULT = GENERATED>(
+async function generateAiObjectInternal<GENERATED, RESULT = GENERATED>(
   options: AiObjectOptions<GENERATED, RESULT>,
 ) {
   const { model, modelName, provider } = resolveModel(options.sceneId);
@@ -668,8 +747,9 @@ export async function generateAiObject<GENERATED, RESULT = GENERATED>(
       prompt: options.prompt,
       maxOutputTokens: options.maxOutputTokens,
     },
-    (attempt) =>
-      generateText({
+    (attempt) => {
+      options.abortSignal?.throwIfAborted();
+      return generateText({
         model,
         system: options.system,
         prompt: attempt.prompt,
@@ -677,7 +757,8 @@ export async function generateAiObject<GENERATED, RESULT = GENERATED>(
         maxOutputTokens: attempt.maxOutputTokens,
         reasoning: options.reasoning ?? 'none',
         output,
-      }),
+      });
+    },
     (generated) =>
       options.resultSchema
         ? options.resultSchema.parse(generated)
@@ -685,7 +766,7 @@ export async function generateAiObject<GENERATED, RESULT = GENERATED>(
   );
 }
 
-export async function generateAiArray<ELEMENT, RESULT = ELEMENT[]>(
+async function generateAiArrayInternal<ELEMENT, RESULT = ELEMENT[]>(
   options: AiArrayOptions<ELEMENT, RESULT>,
 ) {
   const { model, modelName, provider } = resolveModel(options.sceneId);
@@ -707,8 +788,9 @@ export async function generateAiArray<ELEMENT, RESULT = ELEMENT[]>(
       prompt: options.prompt,
       maxOutputTokens: options.maxOutputTokens,
     },
-    (attempt) =>
-      generateText({
+    (attempt) => {
+      options.abortSignal?.throwIfAborted();
+      return generateText({
         model,
         system: options.system,
         prompt: attempt.prompt,
@@ -716,7 +798,8 @@ export async function generateAiArray<ELEMENT, RESULT = ELEMENT[]>(
         maxOutputTokens: attempt.maxOutputTokens,
         reasoning: options.reasoning ?? 'none',
         output,
-      }),
+      });
+    },
     (generated) =>
       options.resultSchema
         ? options.resultSchema.parse(generated)

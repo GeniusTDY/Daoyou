@@ -1,0 +1,5 @@
+async function e(e){let t=await e.json();if(!e.ok)throw Error(t.error||`每日占卜暂不可用，请稍后再试。`);return t}async function t(t){return e(await fetch(`/api/divination`,{cache:`no-store`,signal:t}))}async function n(t,n){return e(await fetch(`/api/divination/draw`,{method:`POST`,headers:{"Content-Type":`application/json`},body:JSON.stringify({direction:t}),signal:n}))}async function r(t,n,r){let i=await fetch(`/api/divination/interpret`,{method:`POST`,headers:{"Content-Type":`application/json`},body:JSON.stringify({drawId:t}),signal:n});if(!i.ok){await e(i);return}if(!i.body)throw Error(`签文未能传回，请重新查看。`);let a=i.body.getReader(),o=new TextDecoder,s=``,c=!1,l=()=>{let e;for(;(e=s.indexOf(`
+
+`))>=0;){let t=s.slice(0,e);s=s.slice(e+2);let n=t.split(`
+`).filter(e=>e.startsWith(`data:`)).map(e=>e.slice(5).trimStart()).join(`
+`);if(!n)continue;let i=JSON.parse(n);if(i.type===`error`)throw Error(i.message);i.type===`complete`&&(c=!0),r(i)}};try{for(;;){let{done:e,value:t}=await a.read();if(e)break;s+=o.decode(t,{stream:!0}),l()}if(s+=o.decode(),l(),!c)throw Error(`签文传送中断。结果已保留，可重新查看。`)}finally{await a.cancel().catch(()=>{}),a.releaseLock()}}export{t as n,r,n as t};

@@ -46,8 +46,7 @@ export interface TowerBattleContext {
   enemy: Cultivator;
 }
 
-export type TowerPreparedEnemySetStatus = 'ready' | 'failed';
-
+/** @deprecated  towerEnemyFloors  JSON V6  */
 export interface TowerPreparedEnemy {
   floor: number;
   encounter: TowerEncounter;

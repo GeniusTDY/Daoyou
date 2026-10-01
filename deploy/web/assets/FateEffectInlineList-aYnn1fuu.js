@@ -1,0 +1,1 @@
+import{t as e}from"./jsx-runtime-BtH0gOTJ.js";var t=e();function n({lines:e}){return e.length===0?null:(0,t.jsx)(`ul`,{className:`space-y-1 text-sm`,children:e.map((e,n)=>(0,t.jsxs)(`li`,{className:`text-ink-secondary leading-relaxed`,children:[`· `,e]},`${e}-${n}`))})}export{n as t};

@@ -1,0 +1,1 @@
+import{t as e}from"./cn-BcQqvKBv.js";import{t}from"./jsx-runtime-BtH0gOTJ.js";import{lt as n}from"./index-CJRUtK0c.js";var r=t();function i({isMutant:t,className:i,...a}){return(0,r.jsx)(n,{purpose:`artwork`,...a,className:e(i,t&&`[filter:sepia(0.65)_saturate(2)_hue-rotate(235deg)]`)})}export{i as t};

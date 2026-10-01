@@ -1,4 +1,5 @@
 import type { CultivationProgress, Cultivator } from '@shared/types/cultivator';
+import { COMPREHENSION_INSIGHT_CAP } from '@shared/config/cultivationTuning';
 import {
   calculateBattleExp,
   calculateSceneCultivationExp,
@@ -89,7 +90,7 @@ export function addCultivationExp(
   
   if (options.insight_gain && options.insight_gain > 0) {
     progress.comprehension_insight = Math.min(
-      100,
+      COMPREHENSION_INSIGHT_CAP,
       progress.comprehension_insight + options.insight_gain,
     );
   }

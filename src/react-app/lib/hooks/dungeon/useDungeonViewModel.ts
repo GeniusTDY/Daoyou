@@ -1,5 +1,7 @@
+import { useQiActionConfirm } from '@app/components/feature/cultivator/useQiActionConfirm';
 import { BattleCallbackData } from '@app/routes/game/dungeon/components/DungeonBattle';
-import { DungeonAbandonBattleResult } from './useEnemyProbe';
+import { QI_ACTION_COSTS } from '@shared/config/qiSystem';
+import type { DungeonMaterialSelection } from '@shared/contracts/combatV6Dungeon';
 import type { ResourceOperation } from '@shared/engine/resource/types';
 import type {
   DungeonOption,
@@ -8,9 +10,7 @@ import type {
   DungeonSettlement,
   DungeonState,
 } from '@shared/lib/dungeon/types';
-import { useQiActionConfirm } from '@app/components/feature/cultivator/useQiActionConfirm';
-import { QI_ACTION_COSTS } from '@shared/config/qiSystem';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useDungeonActions } from './useDungeonActions';
 import { useDungeonState } from './useDungeonState';
 
@@ -27,7 +27,6 @@ export type DungeonViewState =
   | {
       type: 'in_battle';
       battleId: string;
-      opponentName: string;
       state: DungeonState;
     }
   | { type: 'looting'; state: DungeonState }
@@ -97,15 +96,21 @@ export function useDungeonViewModel(
     setState,
     loading: stateLoading,
     refresh,
-  } = useDungeonState(hasCultivator);
-  const { startDungeon, performAction, quitDungeon, continueLooting, escapeLooting, recoverDungeon, processing } =
-    useDungeonActions();
+    error: readError,
+    dismissSettlement,
+  } = useDungeonState(cultivatorId);
+  const {
+    startDungeon,
+    performAction,
+    beginBattle,
+    quitDungeon,
+    continueLooting,
+    escapeLooting,
+    recoverDungeon,
+    processing,
+  } = useDungeonActions(refresh, state);
 
   const { openQiActionConfirm } = useQiActionConfirm();
-
-  
-  const [activeBattleId, setActiveBattleId] = useState<string>();
-  const [opponentName, setOpponentName] = useState('神秘敌手');
 
   
   const lastRound = useMemo<DungeonRound | null>(() => {
@@ -129,7 +134,7 @@ export function useDungeonViewModel(
   
   const viewState = useMemo<DungeonViewState>(() => {
     
-    if (stateLoading) {
+    if (stateLoading && !state) {
       return { type: 'loading' };
     }
 
@@ -138,25 +143,19 @@ export function useDungeonViewModel(
       return { type: 'not_authenticated' };
     }
 
-    
-    if (activeBattleId && state) {
-      return {
-        type: 'in_battle',
-        battleId: activeBattleId,
-        opponentName,
-        state,
-      };
-    }
-
-    
-    const shouldShowBattlePrep =
-      !activeBattleId &&
+    if (
+      !state?.isFinished &&
       state?.status === 'WAITING_BATTLE' &&
-      state.activeBattleId &&
-      !state.isFinished;
-
-    if (shouldShowBattlePrep && state) {
+      state.encounter
+    )
       return { type: 'battle_preparation', state };
+    
+    if (
+      !state?.isFinished &&
+      state?.status === 'IN_BATTLE' &&
+      state.activeBattleId
+    ) {
+      return { type: 'in_battle', battleId: state.activeBattleId, state };
     }
 
     
@@ -187,15 +186,7 @@ export function useDungeonViewModel(
       type: 'map_selection',
       preSelectedNodeId,
     };
-  }, [
-    stateLoading,
-    hasCultivator,
-    activeBattleId,
-    state,
-    lastRound,
-    opponentName,
-    preSelectedNodeId,
-  ]);
+  }, [stateLoading, hasCultivator, state, lastRound, preSelectedNodeId]);
 
   
   const handleStartDungeon = async (nodeId: string) => {
@@ -213,24 +204,41 @@ export function useDungeonViewModel(
   };
 
   
-  const handlePerformAction = async (option: DungeonOption) => {
-    const data = await performAction(option);
-    await applyMutationResult(data as Parameters<typeof resolveDungeonMutationResult>[0]);
+  const handlePerformAction = async (
+    option: DungeonOption,
+    selections: DungeonMaterialSelection[] = [],
+  ) => {
+    if (!state?.runId) return;
+    const data = await performAction(
+      option,
+      state.runId,
+      state.currentRound,
+      selections,
+    );
+    await applyMutationResult(
+      data as Parameters<typeof resolveDungeonMutationResult>[0],
+    );
   };
 
   const handleContinueLooting = async () => {
     const data = await continueLooting();
-    await applyMutationResult(data as Parameters<typeof resolveDungeonMutationResult>[0]);
+    await applyMutationResult(
+      data as Parameters<typeof resolveDungeonMutationResult>[0],
+    );
   };
 
   const handleEscapeLooting = async () => {
     const data = await escapeLooting();
-    await applyMutationResult(data as Parameters<typeof resolveDungeonMutationResult>[0]);
+    await applyMutationResult(
+      data as Parameters<typeof resolveDungeonMutationResult>[0],
+    );
   };
 
   const handleRecoverDungeon = async (action: DungeonRecoverAction) => {
     const data = await recoverDungeon(action);
-    await applyMutationResult(data as Parameters<typeof resolveDungeonMutationResult>[0]);
+    await applyMutationResult(
+      data as Parameters<typeof resolveDungeonMutationResult>[0],
+    );
   };
 
   const applyMutationResult = async (
@@ -257,48 +265,20 @@ export function useDungeonViewModel(
     } else if (resolution.type === 'clear') {
       setState(null);
     }
-
   };
 
   
   const handleQuitDungeon = async (): Promise<boolean> => {
-    const success = await quitDungeon();
-    if (success) {
-      setState(null);
-    }
-    return success;
-  };
-
-  
-  const handleStartBattle = (enemyName: string) => {
-    setOpponentName(enemyName);
-    setActiveBattleId(state?.activeBattleId);
-  };
-
-  const handleAbandonBattleWithResult = async (
-    result: DungeonAbandonBattleResult,
-  ) => {
-    setActiveBattleId(undefined);
-    if (result.isFinished) {
-      setState((prev) =>
-        prev
-          ? {
-              ...prev,
-              isFinished: true,
-              settlement: result.settlement,
-              realGains: result.realGains,
-            }
-          : null,
-      );
-      return;
-    }
-
-    refresh();
+    const data = await quitDungeon();
+    if (!data) return false;
+    await applyMutationResult(
+      data as Parameters<typeof resolveDungeonMutationResult>[0],
+    );
+    return true;
   };
 
   
   const handleBattleComplete = (data: BattleCallbackData | null) => {
-    setActiveBattleId(undefined);
     if (data?.isFinished) {
       setState((prev) =>
         prev
@@ -319,16 +299,26 @@ export function useDungeonViewModel(
 
   return {
     viewState,
-    processing,
+    processing: processing || stateLoading || !!readError,
+    readError,
+    refreshing: stateLoading,
+    refresh,
+    dismissSettlement,
     actions: {
+      beginBattle: async () => {
+        if (!state?.encounter) return;
+        await applyMutationResult(
+          (await beginBattle(state.encounter.id)) as Parameters<
+            typeof resolveDungeonMutationResult
+          >[0],
+        );
+      },
       startDungeon: handleStartDungeon,
       performAction: handlePerformAction,
       quitDungeon: handleQuitDungeon,
       continueLooting: handleContinueLooting,
       escapeLooting: handleEscapeLooting,
       recoverDungeon: handleRecoverDungeon,
-      startBattle: handleStartBattle,
-      abandonBattle: handleAbandonBattleWithResult,
       completeBattle: handleBattleComplete,
     },
   };

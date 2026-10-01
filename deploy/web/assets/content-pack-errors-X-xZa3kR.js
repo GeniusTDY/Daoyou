@@ -1,0 +1,2 @@
+function e(e,t,n){return n.map(n=>{let r=new Set,i=t;for(let e of[...n.path,void 0]){if(typeof i!=`object`||!i)break;let t=i;if(typeof t.id==`string`?r.add(t.id):typeof t.rewardId==`string`?r.add(t.rewardId):typeof t.realm==`string`?r.add(t.realm):typeof t.floor==`number`&&r.add(`floor:${t.floor}`),e===void 0)break;i=t[e]}let a=r.size?` [${[...r].join(` / `)}]`:``;return`${e}: ${n.path.map(String).join(`.`)||`$`}${a}: ${n.message}`}).join(`
+`)}export{e as t};

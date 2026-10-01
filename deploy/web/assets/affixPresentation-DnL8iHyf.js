@@ -1,0 +1,1 @@
+var e={muted:`var(--color-tier-xuan)`,info:`var(--color-tier-di)`,rare:`var(--color-tier-xian)`,legendary:`var(--color-tier-shen)`};function t(t){return{color:e[t]??e.muted}}function n(e){return{borderBottomColor:e?`rgba(193, 18, 31, 0.52)`:`rgba(44, 24, 16, 0.18)`}}function r(){return{color:`rgba(193, 18, 31, 0.72)`}}export{n,r,t};

@@ -1,0 +1,1 @@
+import{n as e}from"./components-B2rQEL-Y.js";import{t}from"./jsx-runtime-BtH0gOTJ.js";import{t as n}from"./loaders-BcIRSZ8c.js";import{n as r}from"./authContext-B9xmdHXP.js";var i=t(),a=n;function o(){return(0,i.jsx)(r,{children:(0,i.jsx)(e,{})})}export{o as default,a as loader};

@@ -1,0 +1,1 @@
+import{t as e}from"./jsx-runtime-BtH0gOTJ.js";import{t}from"./CharacterPanelRedirect-CFdsJLgx.js";var n=e();function r(){return(0,n.jsx)(t,{tab:`body`})}export{r as default};

@@ -10,27 +10,26 @@ export const WorldChatTextMessageSchema = z.object({
     .optional(),
 });
 
-export const WorldChatItemShowcaseMessageSchema = z.object({
-  messageType: z.literal('item_showcase'),
-  itemType: z.enum(['artifact', 'material', 'consumable', 'skill', 'gongfa']),
-  itemId: z.string().trim().min(1),
+export const WorldChatItemShowcaseMessageSchema = z
+  .object({
+    messageType: z.literal('item_showcase'),
+    itemId: z.string().trim().min(1).max(160),
+    revision: z.number().int().nonnegative(),
+    textContent: z.string().trim().max(100).optional(),
+  })
+  .strict();
+
+export const WorldChatBeastShowcaseMessageSchema = z.strictObject({
+  messageType: z.literal('beast_showcase'),
+  beastId: z.uuid(),
+  revision: z.number().int().nonnegative(),
   textContent: z.string().trim().max(100).optional(),
-  payload: z
-    .object({
-      text: z.string().trim().max(100),
-    })
-    .optional(),
 });
 
-export const WorldChatBattleShowcaseMessageSchema = z.object({
-  messageType: z.literal('battle_showcase'),
-  battleRecordId: z.string().uuid(),
-  textContent: z
-    .string()
-    .trim()
-    .max(200)
-    .refine((value) => Array.from(value).length <= 100)
-    .optional(),
+export const WorldChatCombatV6ReplayMessageSchema = z.strictObject({
+  messageType: z.literal('combat_v6_replay'),
+  battleId: z.uuid(),
+  textContent: z.string().trim().max(100).optional(),
 });
 
 export const WorldChatCreateMessageSchema = z.discriminatedUnion(
@@ -38,8 +37,10 @@ export const WorldChatCreateMessageSchema = z.discriminatedUnion(
   [
     WorldChatTextMessageSchema,
     WorldChatItemShowcaseMessageSchema,
-    WorldChatBattleShowcaseMessageSchema,
+    WorldChatBeastShowcaseMessageSchema,
+    WorldChatCombatV6ReplayMessageSchema,
   ],
+  { error: '仅支持文字、道具、灵兽与新版战绩消息，旧版战报分享已停用' },
 );
 
 export const WorldChatListQuerySchema = z.object({

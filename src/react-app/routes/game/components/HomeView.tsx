@@ -11,7 +11,7 @@ import {
 import { InkButton, InkNotice } from '@app/components/ui';
 import { useTaskList } from '@app/lib/hooks/useTaskList';
 import { useCultivatorProgress } from '@app/lib/resources/player';
-import { getNextNoviceHomeAction } from '@app/lib/tasks/noviceHomeAction';
+import { useStory } from '@app/lib/story/useStory';
 import { findCurrentMajorBreakthroughTask } from '@app/lib/tasks/taskClient';
 import { getBodyCultivationSummary } from '@shared/lib/bodyCultivation/summary';
 import { getNextMajorRealm } from '@shared/lib/breakthroughPill';
@@ -117,9 +117,11 @@ export function HomeView() {
     () => (tasks ? findCurrentMajorBreakthroughTask(cultivator, tasks) : null),
     [cultivator, tasks],
   );
+  const story = useStory(Boolean(cultivator));
+  const storyCue = story.story?.prompt ? story.story : null;
 
   if (isLoading || tasksLoading || !tasks) {
-    return <GameSceneLoading message="正在推演天机……" />;
+    return <GameSceneLoading message="正在进入洞府……" />;
   }
 
   if (!cultivator) {
@@ -138,11 +140,6 @@ export function HomeView() {
   const urgentItems: ReactNode[] = [];
   const unallocatedAttributePoints =
     cultivator.unallocated_attribute_points ?? 0;
-  const noviceAction = getNextNoviceHomeAction({
-    tasks,
-    hp: display?.resources.hp,
-    mp: display?.resources.mp,
-  });
   const hasYieldAlert = yieldHours >= 1;
   const hasResourceAlert =
     caveStatus !== null &&
@@ -154,15 +151,15 @@ export function HomeView() {
   const isMajorBreakthroughCandidate = Boolean(
     cultivator.realm_stage === '圆满' && getNextMajorRealm(cultivator.realm),
   );
-  if (noviceAction) {
+  if (storyCue) {
     urgentItems.push(
       <HomeUrgentRow
-        key="novice-action"
-        title={<span className="text-wood">{noviceAction.title}</span>}
-        summary={noviceAction.summary}
+        key="story-cue"
+        title={<span className="text-wood">玉简</span>}
+        summary={storyCue.prompt}
         action={
-          <InkButton href={noviceAction.href} variant="primary">
-            {noviceAction.label}
+          <InkButton href={storyCue.href} variant="primary">
+            展开
           </InkButton>
         }
       />,
@@ -199,7 +196,7 @@ export function HomeView() {
     const summary =
       currentMajorTask.status === 'completed'
         ? '准备充分，可冲关'
-        : '需准备充分，方可冲关';
+        : '完成破境任务后可冲关';
     urgentItems.push(
       <HomeUrgentRow
         key="major-breakthrough-task"
@@ -214,7 +211,7 @@ export function HomeView() {
             }
             variant="primary"
           >
-            {currentMajorTask.status === 'completed' ? '冲关' : '准备'}
+            {currentMajorTask.status === 'completed' ? '前往静室' : '查看任务'}
           </InkButton>
         }
       />,
@@ -233,7 +230,7 @@ export function HomeView() {
         summary={`修为进度已达 ${Math.min(100, caveStatus?.cultivationPercent ?? 0)}%`}
         action={
           <InkButton href="/game/retreat" variant="primary">
-            突破
+            前往静室
           </InkButton>
         }
       />,
@@ -272,7 +269,12 @@ export function HomeView() {
   }
 
   return (
-    <GameSceneFrame title="洞府" aside={<HomeAside />}>
+    <GameSceneFrame
+      title="洞府"
+      aside={
+        cultivator.id ? <HomeAside cultivatorId={cultivator.id} /> : undefined
+      }
+    >
       <GameSceneSection title="当下要事">
         <div>
           {urgentItems.length > 0 ? (

@@ -1,19 +1,20 @@
-import {
-  ItemDetailModal,
-  type ItemDetailPayload,
-} from '@app/components/feature/items';
-import Link from '@app/components/router/AppLink';
+import { huntEventById, huntMapHref } from '@shared/hunts/config';
+import { BeastTradeDetails } from '@app/components/feature/beasts/BeastTradePreview';
+import { itemPresentation } from '@app/components/feature/items/itemPresentation';
+import { ItemPreview } from '@app/components/feature/items/ItemPreview';
+import { InkModal } from '@app/components/layout';
 import type { Tier } from '@app/components/ui/InkBadge';
-import { InkBadge, tierColorMap } from '@app/components/ui/InkBadge';
+import { InkBadge } from '@app/components/ui/InkBadge';
 import { useCultivatorIdentity } from '@app/lib/resources/player';
+import { BeastTradePreviewSchema } from '@shared/contracts/beastTrade';
+import { isInventoryShowcase } from '@shared/items/showcase';
 import { cn } from '@shared/lib/cn';
 import type {
-  ItemShowcaseSnapshotMap,
   WorldChatBattleShowcasePayload,
-  WorldChatItemShowcasePayload,
   WorldChatMessageDTO,
 } from '@shared/types/world-chat';
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router';
 
 const relativeTimeFormatter = new Intl.RelativeTimeFormat('zh-CN', {
   numeric: 'auto',
@@ -51,20 +52,6 @@ function renderTextMessage(message: WorldChatMessageDTO): string {
   return message.textContent || payloadText;
 }
 
-function isItemShowcasePayload(
-  payload: WorldChatMessageDTO['payload'],
-): payload is WorldChatItemShowcasePayload {
-  return (
-    typeof payload === 'object' &&
-    payload !== null &&
-    'itemType' in payload &&
-    'itemId' in payload &&
-    'snapshot' in payload &&
-    typeof payload.itemType === 'string' &&
-    typeof payload.itemId === 'string'
-  );
-}
-
 function isBattleShowcasePayload(
   payload: WorldChatMessageDTO['payload'],
 ): payload is WorldChatBattleShowcasePayload {
@@ -92,10 +79,7 @@ function BattleShowcaseCard({
   payload: WorldChatBattleShowcasePayload;
 }) {
   return (
-    <Link
-      href={`/battle-replay/${payload.shareCode}`}
-      className="border-ink/15 hover:border-crimson/35 mt-1 block border border-dashed bg-white/55 px-3 py-2 no-underline transition hover:bg-white/80"
-    >
+    <div className="border-ink/15 mt-1 border border-dashed bg-white/55 px-3 py-2">
       <div className="flex min-w-0 items-center gap-2">
         <span className="text-teal min-w-0 flex-1 truncate font-semibold">
           {payload.winner.name}
@@ -107,157 +91,15 @@ function BattleShowcaseCard({
       </div>
       <div className="text-ink-secondary mt-1 flex items-center justify-between gap-3 text-xs">
         <span>鏖战 {payload.turns} 回</span>
-        <span className="text-ink">观看战谱 →</span>
+        <span className="text-ink">旧版战报已停用</span>
       </div>
       {payload.text ? (
         <p className="text-ink border-ink/10 mt-1.5 border-t border-dashed pt-1.5 text-sm leading-6 break-all">
           {payload.text}
         </p>
       ) : null}
-    </Link>
+    </div>
   );
-}
-
-function parseShowcaseItem(payload: WorldChatItemShowcasePayload): {
-  name: string;
-  tier?: Tier;
-  text?: string;
-  detailItem: ItemDetailPayload;
-} | null {
-  if (!payload.snapshot || typeof payload.snapshot !== 'object') {
-    return null;
-  }
-
-  if (payload.itemType === 'artifact') {
-    const item = payload.snapshot as ItemShowcaseSnapshotMap['artifact'];
-    if (
-      typeof item.name !== 'string' ||
-      typeof item.slot !== 'string' ||
-      typeof item.element !== 'string'
-    ) {
-      return null;
-    }
-    return {
-      name: item.name,
-      tier: item.quality as Tier | undefined,
-      text: payload.text,
-      detailItem: {
-        kind: 'artifact',
-        item: {
-          id: item.id || payload.itemId,
-          name: item.name,
-          slot: item.slot,
-          element: item.element,
-          quality: item.quality,
-          description: item.description,
-          productModel: item.productModel,
-        },
-      },
-    };
-  }
-
-  if (payload.itemType === 'material') {
-    const item = payload.snapshot as ItemShowcaseSnapshotMap['material'];
-    if (
-      typeof item.name !== 'string' ||
-      typeof item.type !== 'string' ||
-      typeof item.rank !== 'string' ||
-      typeof item.quantity !== 'number'
-    ) {
-      return null;
-    }
-    return {
-      name: item.name,
-      tier: item.rank as Tier,
-      text: payload.text,
-      detailItem: {
-        kind: 'material',
-        item: {
-          id: item.id || payload.itemId,
-          name: item.name,
-          type: item.type,
-          rank: item.rank,
-          element: item.element,
-          description: item.description,
-          quantity: item.quantity,
-        },
-      },
-    };
-  }
-
-  if (payload.itemType === 'skill') {
-    const item = payload.snapshot as ItemShowcaseSnapshotMap['skill'];
-    if (typeof item.name !== 'string') {
-      return null;
-    }
-    return {
-      name: item.name,
-      tier: item.quality as Tier | undefined,
-      text: payload.text,
-      detailItem: {
-        kind: 'skill',
-        item: {
-          id: item.id || payload.itemId,
-          name: item.name,
-          element: item.element,
-          quality: item.quality,
-          description: item.description ?? undefined,
-          score: item.score,
-          productModel: item.productModel,
-        } as ItemDetailPayload['item'],
-      } as ItemDetailPayload,
-    };
-  }
-
-  if (payload.itemType === 'gongfa') {
-    const item = payload.snapshot as ItemShowcaseSnapshotMap['gongfa'];
-    if (typeof item.name !== 'string') {
-      return null;
-    }
-    return {
-      name: item.name,
-      tier: item.quality as Tier | undefined,
-      text: payload.text,
-      detailItem: {
-        kind: 'gongfa',
-        item: {
-          id: item.id || payload.itemId,
-          name: item.name,
-          element: item.element ?? undefined,
-          quality: item.quality ?? undefined,
-          description: item.description ?? undefined,
-          score: item.score,
-          productModel: item.productModel,
-        },
-      },
-    };
-  }
-
-  const item = payload.snapshot as ItemShowcaseSnapshotMap['consumable'];
-  if (
-    typeof item.name !== 'string' ||
-    typeof item.type !== 'string' ||
-    typeof item.quantity !== 'number'
-  ) {
-    return null;
-  }
-  return {
-    name: item.name,
-    tier: item.quality as Tier | undefined,
-    text: payload.text,
-    detailItem: {
-      kind: 'consumable',
-      item: {
-        id: item.id || payload.itemId,
-        name: item.name,
-        type: item.type,
-        quality: item.quality,
-        quantity: item.quantity,
-        description: item.description,
-        spec: item.spec,
-      },
-    },
-  };
 }
 
 interface WorldChatMessageItemProps {
@@ -271,7 +113,6 @@ export function WorldChatMessageItem({
   onSelectFriend,
 }: WorldChatMessageItemProps) {
   const cultivator = useCultivatorIdentity().data?.cultivator;
-  const [detailItem, setDetailItem] = useState<ItemDetailPayload | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const isSystemRumor =
     message.channel === 'system' ||
@@ -280,13 +121,39 @@ export function WorldChatMessageItem({
 
   const showcaseData = useMemo(() => {
     if (message.messageType !== 'item_showcase') return null;
-    if (!isItemShowcasePayload(message.payload)) return null;
-    return parseShowcaseItem(message.payload);
+    if (!isInventoryShowcase(message.payload)) return null;
+    try {
+      const presentation = itemPresentation(message.payload.snapshot);
+      return {
+        ...message.payload.snapshot,
+        presentation,
+        text: message.payload.text,
+      };
+    } catch {
+      return null;
+    }
   }, [message]);
+  const hunt =
+    message.channel === 'system' &&
+    message.messageType === 'hunt_rumor' &&
+    'eventId' in message.payload
+      ? huntEventById(message.payload.eventId)
+      : undefined;
   const battleShowcase =
     message.messageType === 'battle_showcase' &&
     isBattleShowcasePayload(message.payload)
       ? message.payload
+      : null;
+  const beastShowcase =
+    message.messageType === 'beast_showcase' &&
+    'version' in message.payload &&
+    message.payload.version === 1 &&
+    'beast' in message.payload &&
+    BeastTradePreviewSchema.safeParse(message.payload.beast).success
+      ? (message.payload as Extract<
+          WorldChatMessageDTO['payload'],
+          { beast: unknown }
+        >)
       : null;
 
   return (
@@ -306,10 +173,8 @@ export function WorldChatMessageItem({
               message.senderCultivatorId !== cultivator?.id ? (
                 <button
                   type="button"
-                  className="cursor-pointer font-semibold underline-offset-2 hover:text-crimson hover:underline"
-                  onClick={() =>
-                    onSelectFriend?.(message.senderCultivatorId!)
-                  }
+                  className="hover:text-crimson cursor-pointer font-semibold underline-offset-2 hover:underline"
+                  onClick={() => onSelectFriend?.(message.senderCultivatorId!)}
                   aria-label={`查看并收录道友 ${message.senderName}`}
                 >
                   {message.senderName}
@@ -327,24 +192,43 @@ export function WorldChatMessageItem({
           </span>
         </div>
         <div className="text-sm leading-6 break-all">
-          {message.messageType === 'battle_showcase' && battleShowcase ? (
+          {hunt ? (
+            <span>
+              {renderTextMessage(message)}{' '}
+              <Link className="text-teal font-semibold underline" to={huntMapHref(hunt)}>
+                前往查看
+              </Link>
+            </span>
+          ) : message.messageType === 'combat_v6_replay' && 'version' in message.payload && message.payload.version === 1 && 'shareCode' in message.payload && typeof message.payload.shareCode === 'string' && 'sides' in message.payload && Array.isArray(message.payload.sides) && Array.isArray(message.payload.sides[0]) && Array.isArray(message.payload.sides[1]) ? (
+            <Link className="border-ink/15 hover:border-teal block border border-dashed bg-white/55 px-3 py-2" to={`/combat-replay/${message.payload.shareCode}`}>
+              <span className="text-teal font-semibold">战斗回放 · {message.payload.sides[0].join('、')} 对阵 {message.payload.sides[1].join('、')}</span>
+              <span className="text-ink-secondary ml-2 text-xs">{message.payload.roundCount} 回合 · 点击查看</span>
+              {message.payload.text ? <p className="mt-1">{message.payload.text}</p> : null}
+            </Link>
+          ) : message.messageType === 'battle_showcase' && battleShowcase ? (
             <BattleShowcaseCard payload={battleShowcase} />
           ) : message.messageType === 'battle_showcase' ? (
-            '【战谱展示】'
-          ) : message.messageType === 'duel_invite' ? (
-            message.textContent || '赌战台有新战帖'
+            '旧版战报已停用'
+          ) : beastShowcase ? (
+            <span>
+              <button
+                type="button"
+                className="text-teal cursor-pointer font-semibold hover:underline"
+                onClick={() => setDetailOpen(true)}
+              >
+                ［{beastShowcase.beast.name}］
+              </button>
+              {beastShowcase.text ? ` ${beastShowcase.text}` : ''}
+            </span>
           ) : message.messageType === 'item_showcase' && showcaseData ? (
             <span>
               <button
                 type="button"
                 className={cn(
                   'cursor-pointer font-semibold underline-offset-2 hover:underline',
-                  showcaseData.tier
-                    ? tierColorMap[showcaseData.tier]
-                    : 'text-ink',
+                  showcaseData.presentation.color,
                 )}
                 onClick={() => {
-                  setDetailItem(showcaseData.detailItem);
                   setDetailOpen(true);
                 }}
               >
@@ -353,18 +237,30 @@ export function WorldChatMessageItem({
               {showcaseData.text ? ` ${showcaseData.text}` : ''}
             </span>
           ) : message.messageType === 'item_showcase' ? (
-            '【道具展示】'
+            renderTextMessage(message) || '道具详情暂不可查看'
           ) : (
             renderTextMessage(message)
           )}
         </div>
       </div>
-      <ItemDetailModal
-        isOpen={detailOpen}
-        onClose={() => setDetailOpen(false)}
-        item={detailItem}
-        viewerRealm={cultivator?.realm}
-      />
+      {showcaseData ? (
+        <InkModal isOpen={detailOpen} onClose={() => setDetailOpen(false)}>
+          <ItemPreview
+            item={showcaseData}
+            close={() => setDetailOpen(false)}
+            context="发送时的物品状态"
+          />
+        </InkModal>
+      ) : null}
+      {beastShowcase ? (
+        <InkModal
+          isOpen={detailOpen}
+          title={beastShowcase.beast.name}
+          onClose={() => setDetailOpen(false)}
+        >
+          <BeastTradeDetails beast={beastShowcase.beast} tradeNotice={false} />
+        </InkModal>
+      ) : null}
     </>
   );
 }

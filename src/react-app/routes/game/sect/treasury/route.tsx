@@ -14,7 +14,7 @@ import type {
   SectShopItemData,
 } from '@shared/contracts/sectShop';
 import { STANDARD_SECT_PRESENTATION } from '@shared/engine/sect';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   postJson,
   SectPermissionBoundary,
@@ -51,14 +51,21 @@ function TreasuryConversation({
   const [catalogOpen, setCatalogOpen] = useState(false);
   const [buyingId, setBuyingId] = useState<string | null>(null);
 
+  const pending = useRef(false);
+  const attempts = useRef(new Map<string, string>());
   const executeBuy = async (item: SectShopItemData) => {
+    if (pending.current) return;
+    pending.current = true;
+    const requestId = attempts.current.get(item.id) ?? crypto.randomUUID();
+    attempts.current.set(item.id, requestId);
     setBuyingId(item.id);
     try {
       const result = await mutate<SectShopBuyResponse>(
-        fetch(`/api/sects/current/shop/${item.id}/buy`, postJson()),
+        fetch(`/api/sects/current/shop/${item.id}/buy`, postJson(undefined, requestId)),
       );
+      attempts.current.delete(item.id);
       pushToast({
-        message: `已支取 ${result.purchasedItem.item.name}`,
+        message: `已兑换${result.purchasedItem.item?.name ?? '道具'}，存入${result.destinations.map(location => location === 'bag' ? '储物袋' : '洞府储藏室').join('／')}。`,
         tone: 'success',
       });
       await shop.reload();
@@ -68,6 +75,7 @@ function TreasuryConversation({
         tone: 'danger',
       });
     } finally {
+      pending.current = false;
       setBuyingId(null);
     }
   };
@@ -75,19 +83,19 @@ function TreasuryConversation({
   const handleBuy = async (item: SectShopItemData) => {
     const contribution = shop.data?.contribution;
     if (item.remainingPurchases === 0) {
-      pushToast({ message: '此物已达兑换上限', tone: 'warning' });
+      pushToast({ message: '这件物品已达到兑换上限。', tone: 'warning' });
       return;
     }
     if (contribution === undefined || contribution < item.price) {
-      pushToast({ message: '宗门贡献不足', tone: 'warning' });
+      pushToast({ message: '宗门贡献不足。', tone: 'warning' });
       return;
     }
     if (item.price > HIGH_VALUE_EXCHANGE_CONFIRM_THRESHOLD) {
       openDialog({
-        title: '高额兑换确认',
+        title: '确认兑换',
         content: (
           <div className="space-y-2 text-sm leading-7">
-            <p>确定兑换「{item.item.name}」吗？</p>
+            <p>确定兑换「{(item.item?.name ?? '道具')}」吗？</p>
             <p className="text-crimson font-bold">
               将消耗：{item.price} 宗门贡献
             </p>

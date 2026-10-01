@@ -3,12 +3,12 @@
  *
  *  engine/effect  EffectConfig
  * /
- *  v2  engine/creation-v2/persistence/ScoreCalculator  product.score
+ *
  */
 
-import { Quality } from '@shared/types/constants';
-import { Artifact, Consumable } from '@shared/types/cultivator';
 import { calculatePillScore } from '@shared/lib/pillScore';
+import { Quality } from '@shared/types/constants';
+import { Consumable } from '@shared/types/cultivator';
 
 const QUALITY_SCORE_MAP: Record<Quality, number> = {
   凡品: 80,
@@ -20,14 +20,6 @@ const QUALITY_SCORE_MAP: Record<Quality, number> = {
   仙品: 4300,
   神品: 7600,
 };
-
-export function calculateSingleArtifactScore(artifact: Artifact): number {
-  if (typeof artifact.score === 'number') {
-    return artifact.score;
-  }
-  const base = QUALITY_SCORE_MAP[artifact.quality || '凡品'] || 80;
-  return Math.floor(Math.max(1, base));
-}
 
 export function calculateSingleElixirScore(consumable: Consumable): number {
   const pillScore = calculatePillScore(consumable);

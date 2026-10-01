@@ -1,0 +1,1 @@
+import{t as e}from"./jsx-runtime-BtH0gOTJ.js";import{n as t}from"./GameSceneFrame-BfWhS8m8.js";import"./index-CJRUtK0c.js";var n=e();function r(){return(0,n.jsx)(t,{variant:`workflow`,children:(0,n.jsx)(`p`,{className:`text-ink-secondary text-sm`,children:`旧造物生产已停用，历史物品保留在洞府宝库。神通请通过宗门心法修习。`})})}export{r as default};

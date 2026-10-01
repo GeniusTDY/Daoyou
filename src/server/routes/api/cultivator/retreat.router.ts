@@ -1,7 +1,9 @@
 import {
   redisLockErrorResponse,
   requireActiveCultivatorRef,
+  validateJson,
 } from '@server/lib/hono/middleware';
+import { JournalIdempotencyError } from '@server/lib/repositories/playerJournalRepository';
 import { streamSseEvents } from '@server/lib/hono/streaming';
 import type { AppEnv } from '@server/lib/hono/types';
 import {
@@ -19,14 +21,9 @@ import {
   getLifespanExhaustedStoryPrompt,
 } from '@server/utils/prompts';
 import type { PlayerResourceMutationMeta } from '@shared/contracts/player';
-import type { RetreatResultData } from '@shared/contracts/retreat';
+import { RetreatRequestSchema, type RetreatResultData } from '@shared/contracts/retreat';
 import { Hono, type Context } from 'hono';
 import { z } from 'zod';
-
-const RetreatSchema = z.object({
-  years: z.number().optional(),
-  action: z.enum(['cultivate', 'breakthrough']).default('cultivate'),
-});
 
 function qiErrorResponse(c: Context<AppEnv>, error: unknown) {
   if (error instanceof QiInsufficientError) {
@@ -56,11 +53,11 @@ function createRetreatStreamResponse(
     onStoryComplete?: (story: string) => Promise<void> | void;
   },
 ): Response {
-  return streamSseEvents(c, async (stream) => {
+  return streamSseEvents(c, async (stream, _isAborted, signal) => {
     await stream.writeSSE({
       data: JSON.stringify({ type: 'result', data: args.result }),
     });
-    if (args.state?.changes.length) {
+    if (args.state && (args.state.changes.length || args.state.replayed)) {
       await stream.writeSSE({
         data: JSON.stringify({ type: 'state', state: args.state }),
       });
@@ -78,7 +75,7 @@ function createRetreatStreamResponse(
       const aiStreamResult = streamAiText({
         system: prompt[0],
         prompt: prompt[1],
-        abortSignal: c.req.raw.signal,
+        abortSignal: signal,
         sceneId:
           args.storySource.type === 'breakthrough'
             ? 'breakthrough-story'
@@ -109,8 +106,13 @@ function createRetreatStreamResponse(
 }
 
 const retreatRouter = new Hono<AppEnv>();
+retreatRouter.onError((error, c) => {
+  if (error instanceof z.ZodError) return c.json({ error: '闭关突破参数无效' }, 400);
+  console.error('闭关突破请求失败:', error);
+  return c.json({ error: '闭关突破暂时无法完成' }, 500);
+});
 
-retreatRouter.post('/', requireActiveCultivatorRef(), async (c) => {
+retreatRouter.post('/', requireActiveCultivatorRef(), validateJson(RetreatRequestSchema), async (c) => {
   const user = c.get('user');
   const activeCultivator = c.get('activeCultivatorRef');
   if (!user || !activeCultivator) {
@@ -118,14 +120,13 @@ retreatRouter.post('/', requireActiveCultivatorRef(), async (c) => {
   }
 
   try {
-    const { years: inputYears, action } = RetreatSchema.parse(
-      await c.req.json(),
-    );
+    const input = c.get('validatedJson') as import('@shared/contracts/retreat').RetreatRequest;
     const execution = await executeRetreatCommand({
       userId: user.id,
       cultivatorId: activeCultivator.cultivatorId,
-      action,
-      years: inputYears ?? 0,
+      action: input.action,
+      years: input.action === 'cultivate' ? input.years : 0,
+      requestId: input.requestId,
     });
     return createRetreatStreamResponse(c, {
       result: execution.committed.result,
@@ -138,6 +139,9 @@ retreatRouter.post('/', requireActiveCultivatorRef(), async (c) => {
     if (lockErrorResponse) return lockErrorResponse;
     const qiResponse = qiErrorResponse(c, error);
     if (qiResponse) return qiResponse;
+    if (error instanceof JournalIdempotencyError) {
+      return c.json({ error: error.message }, 409);
+    }
     if (error instanceof RetreatCommandError) {
       return c.json(
         { success: false, error: error.message, ...error.payload },

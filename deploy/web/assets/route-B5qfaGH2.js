@@ -1,0 +1,1 @@
+import{t as e}from"./jsx-runtime-BtH0gOTJ.js";import{t}from"./alchemy-C0Q9Hnad.js";var n=e();function r(){return(0,n.jsx)(t,{})}export{r as default};

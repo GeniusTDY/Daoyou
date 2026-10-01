@@ -1,29 +1,24 @@
-import { type RealmStage, type RealmType } from '@shared/types/constants';
-import {
-  getBreakthroughAttributeGrowthReward,
-} from '@shared/config/realmProgression';
-import {
-  evaluateFateContext,
-} from '@shared/lib/fates';
+import { COMPREHENSION_INSIGHT_CAP } from '@shared/config/cultivationTuning';
+import { getBreakthroughAttributeGrowthReward } from '@shared/config/realmProgression';
 import { isConditionStatusActive } from '@shared/lib/condition';
 import {
   consumeCultivationBoostStatus,
   getCultivationBoostRetreatMultiplier,
 } from '@shared/lib/cultivationBoost';
-import {
-  getProtectMeridiansReductionPercent,
-} from '@shared/lib/pillEffectScaling';
+import { evaluateFateContext } from '@shared/lib/fates';
+import { getProtectMeridiansReductionPercent } from '@shared/lib/pillEffectScaling';
 import type {
   ConditionStatusInstance,
   ConditionStatusKey,
 } from '@shared/types/condition';
+import { type RealmStage, type RealmType } from '@shared/types/constants';
 import type {
   Attributes,
   BreakthroughHistoryEntry,
   Cultivator,
   RetreatRecord,
 } from '@shared/types/cultivator';
-import type { CultivatorDisplayInput } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
+
 import {
   calculateBreakthroughChance,
   getNextStage,
@@ -81,8 +76,16 @@ function getMajorDeviationGain(
   }
 }
 
-export type RetreatCultivatorFacts = CultivatorDisplayInput &
-  Pick<
+export type RetreatCultivatorFacts = Pick<
+  Cultivator,
+  | 'id'
+  | 'name'
+  | 'attributes'
+  | 'realm'
+  | 'realm_stage'
+  | 'condition'
+  | 'sect'
+> & Pick<
     Cultivator,
     | 'age'
     | 'lifespan'
@@ -177,10 +180,9 @@ export function performCultivation(
 
   
   const exp_before = progress.cultivation_exp;
+  const insightBefore = progress.comprehension_insight;
   const wasBottleneckActive = isBottleneckReached(progress);
-  const fateContext = evaluateFateContext(
-    cultivator.pre_heaven_fates ?? [],
-  );
+  const fateContext = evaluateFateContext(cultivator.pre_heaven_fates ?? []);
 
   
   const expResult = calculateCultivationExp(cultivator, years, rng);
@@ -196,9 +198,7 @@ export function performCultivation(
   );
   const finalInsightGain = Math.max(
     0,
-    Math.floor(
-      expResult.insight_gained * fateContext.retreatInsightMultiplier,
-    ),
+    Math.floor(expResult.insight_gained * fateContext.retreatInsightMultiplier),
   );
 
   //  cap cap
@@ -207,7 +207,7 @@ export function performCultivation(
   // 0~2020~50
   if (finalInsightGain > 0) {
     progress.comprehension_insight = Math.min(
-      100,
+      COMPREHENSION_INSIGHT_CAP,
       progress.comprehension_insight + finalInsightGain,
     );
   }
@@ -242,7 +242,7 @@ export function performCultivation(
     exp_gained: finalExpGain,
     exp_before,
     exp_after: progress.cultivation_exp,
-    insight_gained: finalInsightGain,
+    insight_gained: progress.comprehension_insight - insightBefore,
     epiphany_triggered: expResult.epiphany_triggered,
   };
 
@@ -252,7 +252,7 @@ export function performCultivation(
       exp_gained: finalExpGain,
       exp_before,
       exp_after: progress.cultivation_exp,
-      insight_gained: finalInsightGain,
+      insight_gained: progress.comprehension_insight - insightBefore,
       epiphany_triggered: expResult.epiphany_triggered,
       bottleneck_entered,
       can_breakthrough: canAttemptBreakthrough(progress),
@@ -320,10 +320,7 @@ export function attemptBreakthrough(
     cultivator,
     'protect_meridians',
   );
-  const clearMindStatus = getActiveStatus(
-    cultivator,
-    'clear_mind',
-  );
+  const clearMindStatus = getActiveStatus(cultivator, 'clear_mind');
   if (success) {
     
     const attributeReward = getBreakthroughAttributeGrowthReward(
@@ -366,7 +363,10 @@ export function attemptBreakthrough(
     }
     progress.comprehension_insight = Math.max(
       0,
-      Math.min(100, progress.comprehension_insight + insight_change),
+      Math.min(
+        COMPREHENSION_INSIGHT_CAP,
+        progress.comprehension_insight + insight_change,
+      ),
     );
 
     
@@ -402,7 +402,6 @@ export function attemptBreakthrough(
       isMajorBreakthrough && clearMindStatus
         ? Math.max(4, Math.floor(insightLoss * 0.7))
         : insightLoss;
-    insight_change = -finalInsightLoss;
     progress.comprehension_insight = Math.max(
       0,
       progress.comprehension_insight - finalInsightLoss,
@@ -412,9 +411,7 @@ export function attemptBreakthrough(
     progress.breakthrough_failures += 1;
 
     if (isMajorBreakthrough) {
-      let deviationGain = Math.floor(
-        getMajorDeviationGain(fromRealm, rng),
-      );
+      let deviationGain = Math.floor(getMajorDeviationGain(fromRealm, rng));
       if (clearMindStatus) {
         deviationGain = Math.max(5, Math.floor(deviationGain * 0.65));
       }
@@ -427,7 +424,6 @@ export function attemptBreakthrough(
         0,
         100,
       );
-
     }
 
     if (
@@ -460,7 +456,7 @@ export function attemptBreakthrough(
       insight_value,
       exp_lost: success ? undefined : exp_lost,
       breakthrough_type,
-      insight_change,
+      insight_change: progress.comprehension_insight - insight_value,
       inner_demon_triggered: progress.inner_demon,
       modifiers,
     },

@@ -1,4 +1,19 @@
-import { and, asc, desc, eq, gte, lte, or, sql, type SQL } from 'drizzle-orm';
+import type {
+  AuctionAssetType,
+  AuctionItemType,
+} from '@shared/contracts/auction';
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  lte,
+  ne,
+  or,
+  sql,
+  type SQL,
+} from 'drizzle-orm';
 import {
   getExecutor,
   type DbExecutor,
@@ -13,7 +28,7 @@ export type AuctionListing = typeof schema.auctionListings.$inferSelect;
 export async function createListing(data: {
   sellerId: string;
   sellerName: string;
-  itemType: 'material' | 'artifact' | 'consumable';
+  itemType: AuctionItemType;
   itemId: string;
   itemName: string;
   itemQuality: string;
@@ -70,7 +85,8 @@ export async function findById(
 
 export interface FindActiveListingsOptions {
   scope?: 'all' | 'mine';
-  itemType?: 'material' | 'artifact' | 'consumable';
+  assetType?: AuctionAssetType;
+  itemType?: AuctionItemType;
   itemCategory?: string;
   itemQuality?: string;
   itemName?: string;
@@ -89,6 +105,7 @@ export async function findActiveListings(
   const q = getExecutor();
   const {
     scope = 'all',
+    assetType,
     itemType,
     itemCategory,
     itemQuality,
@@ -108,6 +125,13 @@ export async function findActiveListings(
     gte(schema.auctionListings.expiresAt, new Date()),
   ];
 
+  if (assetType) {
+    conditions.push(
+      assetType === 'beast'
+        ? eq(schema.auctionListings.itemType, 'beast')
+        : ne(schema.auctionListings.itemType, 'beast'),
+    );
+  }
   if (itemType) {
     conditions.push(eq(schema.auctionListings.itemType, itemType));
   }
@@ -169,7 +193,7 @@ export async function findActiveListings(
     .select()
     .from(schema.auctionListings)
     .where(whereClause)
-    .orderBy(orderByClause)
+    .orderBy(orderByClause, asc(schema.auctionListings.id))
     .limit(limit)
     .offset((page - 1) * limit);
   const countResult = await q

@@ -1,11 +1,11 @@
 import {
-  GameSceneAsideSection,
   GameSceneFrame,
   GameSceneTabs,
 } from '@app/components/game-shell';
 import { useMemo } from 'react';
 import { useSearchParams } from 'react-router';
 import { AccountSettingsTab } from './components/AccountSettingsTab';
+import { CombatAutoStrategyTab } from './components/CombatAutoStrategyTab';
 import { ConnectionStatusTab } from './components/ConnectionStatusTab';
 import { GameSettingsTab } from './components/GameSettingsTab';
 import { ModelConfigTab } from './components/ModelConfigTab';
@@ -13,6 +13,7 @@ import { QiLogsTab } from './components/QiLogsTab';
 
 const SETTINGS_TABS = [
   { label: '游戏设置', value: 'game' },
+  { label: '自动战术', value: 'auto' },
   { label: '天地灵气', value: 'qi' },
   { label: '账号管理', value: 'account' },
   { label: '模型配置', value: 'llm' },
@@ -37,25 +38,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <GameSceneFrame
-      variant="workflow"
-      title="系统设置"
-      description="集中管理当前角色、账号维护与本地模型配置。"
-      aside={
-        <>
-          <GameSceneAsideSection title="当前页">
-            <p className="text-ink-secondary text-sm leading-7">
-              设置项只影响当前登录账号与当前浏览器内的本地配置。
-            </p>
-          </GameSceneAsideSection>
-          <GameSceneAsideSection title="模型配置">
-            <p className="text-ink-secondary text-sm leading-7">
-              API Key 仍仅保存在浏览器 localStorage，不会持久化到服务器。
-            </p>
-          </GameSceneAsideSection>
-        </>
-      }
-    >
+    <GameSceneFrame variant="workflow" title="系统设置">
       <GameSceneTabs
         items={SETTINGS_TABS.map((tab) => ({
           label: tab.label,
@@ -67,6 +50,7 @@ export default function SettingsPage() {
 
       <div className="pt-2">
         {activeTab === 'game' ? <GameSettingsTab /> : null}
+        {activeTab === 'auto' ? <CombatAutoStrategyTab /> : null}
         {activeTab === 'qi' ? <QiLogsTab /> : null}
         {activeTab === 'account' ? <AccountSettingsTab /> : null}
         {activeTab === 'llm' ? <ModelConfigTab /> : null}

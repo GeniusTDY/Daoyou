@@ -1,0 +1,1 @@
+import{r as e,y as t}from"./definitions-CFI1yhyw.js";function n(n=!0){let r=e(t,void 0,n);return{story:r.data,loading:r.loading,error:r.error,reload:r.reload}}export{n as t};

@@ -1,2 +1,5 @@
 
 export const MAX_PLAYER_ITEM_QUANTITY = 99;
+
+
+export const MAX_CRAFT_MATERIAL_QUANTITY = 30;

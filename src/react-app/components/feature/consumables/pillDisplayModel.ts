@@ -59,6 +59,8 @@ interface PillDisplayOptions {
 
 export interface PillDetailGroup {
   key: string;
+  role: 'effect' | 'preview' | 'restriction' | 'source';
+  collapsible?: boolean;
   title: string;
   lines: string[];
 }
@@ -217,6 +219,8 @@ export function getPillFamilyLabel(family: PillFamily): string {
       return '回元';
     case 'detox':
       return '解毒';
+    case 'beast_cultivation':
+      return '灵兽修为';
     case 'cultivation':
       return getGameConceptLabel('cultivation_exp');
     case 'insight':
@@ -240,6 +244,8 @@ export function describePillOperation(operation: ConditionOperation): string {
       return getRestoreEffectText(operation);
     case 'change_gauge':
       return getGaugeChangeText(operation.delta);
+    case 'gain_beast_cultivation':
+      return `灵兽修为 +${operation.value}`;
     case 'gain_progress':
       return `${getProgressTargetLabel(operation.target)} +${operation.value}`;
     case 'increase_lifespan':
@@ -337,6 +343,8 @@ function buildPrimaryEffect(spec: PillSpec): string {
         ? `${getProgressTargetLabel(gain.target)} +${gain.value}`
         : `${getPillFamilyLabel(spec.family)}药效`;
     }
+    case 'beast_cultivation':
+      return '灵兽修为';
     case 'cultivation': {
       const cultivationBoost = spec.operations.find(
         (
@@ -471,7 +479,12 @@ function buildCostAndRuleLines(
     )
     .map((operation) => describePillOperation(operation));
 
-  lines.push('仅可在场外服用');
+  if (
+    spec.operations.some(
+      (operation) => operation.type === 'gain_beast_cultivation',
+    )
+  )
+    return lines;
   const quotaCategory = getEffectiveQuotaCategory(spec);
   const usageRuleText =
     getPillUsageProgressText(quotaCategory, options)?.rule ??
@@ -615,37 +628,10 @@ function buildAlchemyInfoLines(
 ): string[] {
   const { alchemyMeta } = consumable.spec;
   const breakthroughLabel = getBreakthroughPurposeLabel(consumable.spec);
-  const formulaFitBandText =
-    alchemyMeta.source === 'formula'
-      ? alchemyMeta.fitBand === 'aligned'
-        ? '契合成丹'
-        : alchemyMeta.fitBand === 'degraded'
-          ? '勉强成丹'
-          : '偏路成丹'
-      : undefined;
-  const formulaFitMultiplierText =
-    alchemyMeta.source === 'formula' &&
-    Number.isFinite(alchemyMeta.fitMultiplier)
-      ? `丹方倍率：${Math.round(alchemyMeta.fitMultiplier * 100)}%`
-      : undefined;
-  const fitBandText =
-    alchemyMeta.source === 'formula' ? formulaFitBandText : undefined;
-
   return [
-    `丹药类别：${getPillFamilyLabel(consumable.spec.family)}`,
     breakthroughLabel ? `破境用途：${breakthroughLabel}` : undefined,
     alchemyMeta.breakthroughTargetRealm
       ? `目标大境界：${alchemyMeta.breakthroughTargetRealm}`
-      : undefined,
-    `炼制来源：${alchemyMeta.source === 'formula' ? '丹方炼制' : '即兴炼制'}`,
-    fitBandText ? `成丹层级：${fitBandText}` : undefined,
-    formulaFitMultiplierText,
-    `稳度：${alchemyMeta.stability}`,
-    alchemyMeta.dominantElement
-      ? `主元素：${alchemyMeta.dominantElement}`
-      : undefined,
-    alchemyMeta.sourceMaterials.length > 0
-      ? `炼制材料：${alchemyMeta.sourceMaterials.join('、')}`
       : undefined,
   ].filter((line): line is string => Boolean(line));
 }
@@ -655,6 +641,7 @@ export function toPillDisplayModel(
   options?: PillDisplayOptions,
 ): PillDisplayModel {
   const trackPreviewLines = buildTrackPreviewLines(consumable.spec, options);
+  const alchemyInfoLines = buildAlchemyInfoLines(consumable);
   return {
     familyLabel: getPillFamilyLabel(consumable.spec.family),
     appearance: getAppearanceDisplay(consumable.spec),
@@ -664,6 +651,7 @@ export function toPillDisplayModel(
     detailGroups: [
       {
         key: 'core-effects',
+        role: 'effect' as const,
         title: '核心药效',
         lines: buildCoreEffectLines(consumable.spec),
       },
@@ -671,6 +659,7 @@ export function toPillDisplayModel(
         ? [
             {
               key: 'track-preview',
+              role: 'preview' as const,
               title: '服用预览',
               lines: trackPreviewLines,
             },
@@ -678,16 +667,23 @@ export function toPillDisplayModel(
         : []),
       {
         key: 'cost-and-rules',
-        title: '代价与规则',
+        role: 'restriction' as const,
+        title: '代价',
         lines: buildCostAndRuleLines(consumable.spec, options),
       },
-      {
-        key: 'alchemy-info',
-        title: '炼制信息',
-        lines: buildAlchemyInfoLines(consumable),
-      },
+      ...(alchemyInfoLines.length
+        ? [
+            {
+              key: 'alchemy-info',
+              role: 'source' as const,
+              collapsible: true,
+              title: '破境信息',
+              lines: alchemyInfoLines,
+            },
+          ]
+        : []),
     ],
-    flavorText: consumable.description,
+    flavorText: undefined,
   };
 }
 
@@ -695,7 +691,13 @@ function getSpiritFruitRealmRuleLines(
   consumable: Consumable & { spec: SpiritFruitSpec },
   realm?: RealmType,
 ): string[] {
-  if (!realm) return ['进入角色背包后可判断当前境界是否适合服用'];
+  if (
+    consumable.spec.operations.some(
+      (operation) => operation.type === 'gain_beast_cultivation',
+    )
+  )
+    return [];
+  if (!realm) return [];
   const quality = consumable.quality ?? '凡品';
   const minQuality = getMinimumPillQualityByRealm(realm);
   const maxQuality = CULTIVATION_PILL_MAX_QUALITY_BY_REALM[realm];
@@ -706,7 +708,7 @@ function getSpiritFruitRealmRuleLines(
   if (order < QUALITY_ORDER[minQuality]) {
     return [`当前境界至少需要${minQuality}灵果，此果药力过于稀薄`];
   }
-  return ['当前境界可以服用'];
+  return [];
 }
 
 export function toSpiritFruitDisplayModel(
@@ -719,17 +721,19 @@ export function toSpiritFruitDisplayModel(
     familyLabel: getPillFamilyLabel(consumable.spec.family),
     primaryEffect: coreEffects[0] ?? '天地造化药效',
     effectSummary: coreEffects.join(' / ') || '天地造化药效',
-    keywordLabels: [
-      getPillFamilyLabel(consumable.spec.family),
-      '无丹毒',
-      '不限服用额度',
-    ],
+    keywordLabels: [getPillFamilyLabel(consumable.spec.family)],
     detailGroups: [
-      { key: 'core-effects', title: '核心效用', lines: coreEffects },
+      {
+        key: 'core-effects',
+        role: 'effect' as const,
+        title: '核心效用',
+        lines: coreEffects,
+      },
       ...(trackPreviewLines.length > 0
         ? [
             {
               key: 'track-preview',
+              role: 'preview' as const,
               title: '服用预览',
               lines: trackPreviewLines,
             },
@@ -737,18 +741,9 @@ export function toSpiritFruitDisplayModel(
         : []),
       {
         key: 'fruit-rules',
+        role: 'restriction' as const,
         title: '服用规则',
-        lines: [
-          ...getSpiritFruitRealmRuleLines(consumable, options?.realm),
-          '仅可在场外服用',
-          '不产生丹毒',
-          '不占任何服用额度',
-        ],
-      },
-      {
-        key: 'fruit-source',
-        title: '造化来源',
-        lines: ['个人洞府灵田培育所得', '最终形态由三阶段培育自然成型'],
+        lines: [...getSpiritFruitRealmRuleLines(consumable, options?.realm)],
       },
     ],
     flavorText: consumable.description,

@@ -6,6 +6,7 @@ import {
   GameSceneTabs,
 } from '@app/components/game-shell';
 import { InkButton, InkInput, InkNotice } from '@app/components/ui';
+import { COMPREHENSION_INSIGHT_CAP } from '@shared/config/cultivationTuning';
 import { QI_ACTION_COSTS } from '@shared/config/qiSystem';
 import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
 import type { TaskInstance } from '@shared/types/task';
@@ -13,8 +14,8 @@ import type { TaskInstance } from '@shared/types/task';
 import { cn } from '@shared/lib/utils';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { BreakthroughConfirmModal } from './BreakthroughConfirmModal';
 import { BreakthroughChanceDetails } from './BreakthroughChanceDetails';
+import { BreakthroughConfirmModal } from './BreakthroughConfirmModal';
 import type {
   RetreatBuffTag,
   RetreatEfficiencyModel,
@@ -168,7 +169,7 @@ function RetreatBuffTags({
           <span>{emptyHint}</span>
           {showShortcuts ? (
             <>
-              <InkButton href="/game/inventory" variant="ghost">
+              <InkButton href="/game/cave/storage" variant="ghost">
                 背包
               </InkButton>
               <InkButton href="/game/craft/alchemy" variant="ghost">
@@ -375,9 +376,7 @@ function BreakthroughPanel({
         {(retreatEfficiency?.breakthroughTags.length ?? 0) > 0 ? (
           <div className="space-y-2">
             <p className="text-ink-secondary text-xs leading-5">破境准备</p>
-            <RetreatBuffTags
-              tags={retreatEfficiency?.breakthroughTags ?? []}
-            />
+            <RetreatBuffTags tags={retreatEfficiency?.breakthroughTags ?? []} />
           </div>
         ) : null}
       </div>
@@ -658,7 +657,7 @@ export function RetreatView({ sectContext }: RetreatViewProps) {
             />
             <RetreatSummaryEntry
               label={COMPREHENSION_LABEL}
-              value={`${cultivationProgress?.comprehension_insight ?? 0}/100`}
+              value={`${cultivationProgress?.comprehension_insight ?? 0}/${COMPREHENSION_INSIGHT_CAP}`}
               note="感悟越稳，临门一脚越不容易乱。"
             />
             <RetreatSummaryEntry

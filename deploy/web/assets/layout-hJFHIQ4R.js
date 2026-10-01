@@ -1,0 +1,1 @@
+import{n as e}from"./index-CJRUtK0c.js";import{i as t}from"./loaders-BcIRSZ8c.js";export{e as default,t as loader};

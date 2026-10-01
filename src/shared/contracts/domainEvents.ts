@@ -1,11 +1,16 @@
+import { SPIRIT_FIELD_CARE_ACTIONS } from '@shared/engine/spirit-field/types';
 import {
   QUALITY_VALUES,
   REALM_STAGE_VALUES,
   REALM_VALUES,
 } from '@shared/types/constants';
-import { SPIRIT_FIELD_CARE_ACTIONS } from '@shared/engine/spirit-field/types';
 import { ALCHEMY_MODE_VALUES } from '@shared/types/consumable';
 import { z } from 'zod';
+import { ItemGrantSchema } from '../inventory';
+import { InventoryEquipmentSchema } from '../inventory/equipment';
+import { BeastTradePreviewSchema } from './beastTrade';
+import { CombatV6BattleFinishedDataV1Schema } from './combatV6Runtime';
+import { SystemMailAudienceSnapshotSchema } from './systemMail';
 
 export const DOMAIN_EVENT_STREAM = 'DAOYOU_DOMAIN_EVENTS';
 export const DOMAIN_EVENT_SUBJECT_PREFIX = 'daoyou.domain';
@@ -22,11 +27,13 @@ export const DOMAIN_EVENT_TYPES = [
   'spirit-field.upgraded',
   'cultivator.realm.changed',
   'mail.created',
+  'cultivator.mail-audience.observed',
   'craft.item.created',
+  'equipment.forged',
   'market.material.revealed',
-  'bet-battle.created',
-  'bet-battle.settled',
   'ranking.position.changed',
+  'beast.exceptional.acquired',
+  'combat.v6.battle.finished',
 ] as const;
 
 export type DomainEventType = (typeof DOMAIN_EVENT_TYPES)[number];
@@ -34,6 +41,7 @@ export type DomainEventType = (typeof DOMAIN_EVENT_TYPES)[number];
 export const DomainEventTypeSchema = z.enum(DOMAIN_EVENT_TYPES);
 
 export const DomainEventDataSchemas = {
+  'cultivator.mail-audience.observed': SystemMailAudienceSnapshotSchema,
   'sect.construction.donated': z
     .object({
       cultivatorId: z.uuid(),
@@ -77,8 +85,29 @@ export const DomainEventDataSchemas = {
       actionInstanceId: z.uuid(),
       realm: z.enum(REALM_VALUES),
       materialCount: z.number().int().positive().max(100),
+      // Absent on legacy queued events; new claims freeze all item facts.
+      rewardSnapshot: z
+        .strictObject({
+          poolId: z.string().min(1),
+          poolVersion: z.number().int().positive(),
+          items: z
+            .array(
+              ItemGrantSchema.extend({
+                quantity: z.number().int().min(1).max(1),
+              }),
+            )
+            .min(1)
+            .max(8),
+        })
+        .optional(),
     })
-    .strict(),
+    .strict()
+    .refine(
+      (data) =>
+        !data.rewardSnapshot ||
+        data.rewardSnapshot.items.length === data.materialCount,
+      '历练奖励总量不一致',
+    ),
   'spirit-field.sown': z
     .object({
       cultivatorId: z.uuid(),
@@ -161,6 +190,12 @@ export const DomainEventDataSchemas = {
       outputs: z.array(z.record(z.string(), z.unknown())).max(8).optional(),
     })
     .strict(),
+  'equipment.forged': z.strictObject({
+    userId: z.uuid(),
+    cultivatorId: z.uuid(),
+    cultivatorName: z.string().min(1).max(100),
+    equipment: InventoryEquipmentSchema,
+  }),
   'market.material.revealed': z
     .object({
       userId: z.uuid(),
@@ -170,23 +205,6 @@ export const DomainEventDataSchemas = {
       materialName: z.string().min(1).max(200),
       quality: z.enum(QUALITY_VALUES),
       snapshot: z.record(z.string(), z.unknown()),
-    })
-    .strict(),
-  'bet-battle.created': z
-    .object({
-      userId: z.uuid(),
-      cultivatorId: z.uuid(),
-      cultivatorName: z.string().min(1).max(100),
-      battleId: z.uuid(),
-      taunt: z.string().min(1).max(500).optional(),
-    })
-    .strict(),
-  'bet-battle.settled': z
-    .object({
-      userId: z.uuid(),
-      cultivatorId: z.uuid(),
-      battleId: z.uuid(),
-      rumor: z.string().min(1).max(1_000),
     })
     .strict(),
   'ranking.position.changed': z
@@ -200,6 +218,14 @@ export const DomainEventDataSchemas = {
       changeType: z.enum(['direct_entry', 'challenge_win', 'vacancy_entry']),
     })
     .strict(),
+  'beast.exceptional.acquired': z.strictObject({
+    userId: z.uuid(),
+    cultivatorId: z.uuid(),
+    cultivatorName: z.string().min(1).max(100),
+    source: z.enum(['fusion', 'capture']),
+    beast: BeastTradePreviewSchema,
+  }),
+  'combat.v6.battle.finished': CombatV6BattleFinishedDataV1Schema,
 } as const;
 
 export type DomainEventData<TType extends DomainEventType> = z.infer<
@@ -207,6 +233,10 @@ export type DomainEventData<TType extends DomainEventType> = z.infer<
 >;
 
 export const DOMAIN_EVENT_DEFINITIONS = {
+  'cultivator.mail-audience.observed': {
+    version: 1,
+    subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.system-mail.audience-observed.v1`,
+  },
   'sect.construction.donated': {
     version: 1,
     subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.sect.construction-donated.v1`,
@@ -255,21 +285,25 @@ export const DOMAIN_EVENT_DEFINITIONS = {
     version: 1,
     subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.gameplay.craft-item-created.v1`,
   },
+  'equipment.forged': {
+    version: 1,
+    subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.gameplay.equipment-forged.v1`,
+  },
   'market.material.revealed': {
     version: 1,
     subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.gameplay.market-material-revealed.v1`,
   },
-  'bet-battle.created': {
-    version: 1,
-    subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.gameplay.bet-battle-created.v1`,
-  },
-  'bet-battle.settled': {
-    version: 1,
-    subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.gameplay.bet-battle-settled.v1`,
-  },
   'ranking.position.changed': {
     version: 1,
     subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.gameplay.ranking-position-changed.v1`,
+  },
+  'beast.exceptional.acquired': {
+    version: 1,
+    subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.gameplay.beast-exceptional-acquired.v1`,
+  },
+  'combat.v6.battle.finished': {
+    version: 1,
+    subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.battle.combat-v6-battle-finished.v1`,
   },
 } as const satisfies Record<
   DomainEventType,

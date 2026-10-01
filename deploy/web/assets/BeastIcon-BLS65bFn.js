@@ -1,0 +1,1 @@
+import{t as e}from"./jsx-runtime-BtH0gOTJ.js";import{x as t}from"./special-content-D3UpxUam.js";import{t as n}from"./BeastPortrait-C4NFAeEL.js";var r=e(),i=new Map(t.map(e=>[e.id,e.icon]));function a({speciesId:e,...t}){return(0,r.jsx)(n,{value:i.get(e)??`🐾`,...t})}export{a as t};

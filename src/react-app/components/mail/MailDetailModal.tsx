@@ -1,12 +1,11 @@
 import { InkModal } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
-import { InkBadge } from '@app/components/ui/InkBadge';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkNotice } from '@app/components/ui/InkNotice';
 import { useResourceMutation } from '@app/lib/resources/mutations';
-import { getGameConceptIcon } from '@shared/lib/gameConceptDisplay';
-import { Artifact, Consumable, Material } from '@shared/types/cultivator';
+import { mailLocationText } from '@shared/contracts/mail';
 import { useState } from 'react';
+import { MailAttachmentSlot } from './MailAttachmentSlot';
 import { Mail } from './MailList';
 
 interface MailDetailModalProps {
@@ -32,7 +31,7 @@ export function MailDetailModal({
   const handleClaim = async () => {
     try {
       setIsClaiming(true);
-      await mutate(
+      const result = await mutate<{ locations?: string[] }>(
         fetch('/api/cultivator/mail/claim', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -40,12 +39,18 @@ export function MailDetailModal({
         }),
       );
 
-      pushToast({ message: '领取成功！', tone: 'success' });
+      pushToast({
+        message: `领取成功${result.locations?.length ? ' · ' + mailLocationText(result.locations) : ''}`,
+        tone: 'success',
+      });
       onUpdate(mail.id);
       onClose();
     } catch (error) {
       console.error('Claim failed', error);
-      pushToast({ message: '领取失败', tone: 'danger' });
+      pushToast({
+        message: error instanceof Error ? error.message : '领取失败',
+        tone: 'danger',
+      });
     } finally {
       setIsClaiming(false);
     }
@@ -72,52 +77,9 @@ export function MailDetailModal({
             <h4 className="text-ink-secondary text-sm font-bold">
               🎁 附赠物品
             </h4>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
               {mail.attachments?.map((item, idx) => (
-                <div
-                  key={idx}
-                  className="bg-paper-2 border-ink/10 flex items-center justify-between border border-dashed p-2 text-sm"
-                >
-                  <div className="flex min-w-0 items-center gap-2">
-                    <span aria-hidden="true">
-                      {getGameConceptIcon(item.type) || '🎁'}
-                    </span>
-                    {item.type === 'spirit_stones' && (
-                      <span className="text-ink">{item.name}</span>
-                    )}
-                    {item.type === 'reputation' && (
-                      <span className="text-ink">{item.name}</span>
-                    )}
-                    {item.type === 'cultivation_exp' && (
-                      <span className="text-ink">{item.name}</span>
-                    )}
-                    {item.type === 'comprehension_insight' && (
-                      <span className="text-ink">{item.name}</span>
-                    )}
-                    {item.type === 'material' && (
-                      <InkBadge tier={(item.data as Material)?.rank} hideTierText>
-                        {item.name}
-                      </InkBadge>
-                    )}
-                    {item.type === 'consumable' && (
-                      <InkBadge
-                        tier={(item.data as Consumable)?.quality}
-                        hideTierText
-                      >
-                        {item.name}
-                      </InkBadge>
-                    )}
-                    {item.type === 'artifact' && (
-                      <InkBadge
-                        tier={(item.data as Artifact)?.quality}
-                        hideTierText
-                      >
-                        {item.name}
-                      </InkBadge>
-                    )}
-                  </div>
-                  <span className="opacity-70">x{item.quantity}</span>
-                </div>
+                <MailAttachmentSlot key={idx} attachment={item} />
               ))}
             </div>
           </div>

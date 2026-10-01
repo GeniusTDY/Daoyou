@@ -1,5 +1,5 @@
 /**
  *  cultivator  v5
- *  engine/battle-v5/adapters/CultivatorDisplayAdapter
+ *  combat-v6 V5
  */
 export {};

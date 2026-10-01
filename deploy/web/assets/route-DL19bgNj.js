@@ -1,0 +1,1 @@
+import{t as e}from"./components-B2rQEL-Y.js";import{t}from"./jsx-runtime-BtH0gOTJ.js";var n=t();function r(){return(0,n.jsx)(e,{to:`/game/sect/archive`,replace:!0})}export{r as default};

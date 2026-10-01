@@ -1,0 +1,1 @@
+import{i as e,t}from"./react-DB-4Zxce.js";import{t as n}from"./jsx-runtime-BtH0gOTJ.js";import{r}from"./GameSceneFrame-BfWhS8m8.js";import"./index-CJRUtK0c.js";import{t as i}from"./RetreatView-BAWIqXp3.js";var a=e(t(),1),o=n();function s(){return(0,o.jsx)(a.Suspense,{fallback:(0,o.jsx)(r,{message:`洞府封闭中……`}),children:(0,o.jsx)(i,{})})}export{s as default};

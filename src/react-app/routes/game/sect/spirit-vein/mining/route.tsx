@@ -19,6 +19,7 @@ import {
 } from '@app/components/feature/sect/sectTaskOutcomeRegistry';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton, InkNotice } from '@app/components/ui';
+import { GameImage } from '@app/components/ui/GameImage';
 import {
   readActivityImmersiveNavigationState,
   releaseActivityImmersiveMode,
@@ -306,11 +307,11 @@ export default function SectSpiritVeinMiningPage() {
       className="fixed inset-0 isolate overflow-hidden bg-[#07110f] text-stone-50"
       aria-label="灵索采矿小游戏"
     >
-      <div
-        className="absolute -inset-8 scale-110 bg-cover bg-center opacity-55 blur-xl"
-        style={{
-          backgroundImage: "url('/assets/sect/mining/spirit-vein-cavern.webp')",
-        }}
+      <GameImage
+        src="/assets/sect/mining/spirit-vein-cavern.webp"
+        alt=""
+        className="pointer-events-none absolute -top-8 -left-8 h-[calc(100%+4rem)] w-[calc(100%+4rem)] max-w-none scale-110 object-cover object-center blur-xl"
+        style={{ opacity: 0.55 }}
         aria-hidden="true"
       />
       <div className="absolute inset-0 bg-[#06100e]/35" aria-hidden="true" />
@@ -431,7 +432,7 @@ export default function SectSpiritVeinMiningPage() {
             {settlement.kind === 'practice'
               ? '自由练习不会产生奖励。'
               : settlement.qualified
-                ? '采掘回执已成，请回事务堂领取赏赐。'
+                ? '采掘任务已完成，请到宗门事务领取奖励。'
                 : '委托仍在名下，可以重新开启采掘场。'}
           </p>
           <div className="mt-5 flex flex-wrap justify-center gap-3">

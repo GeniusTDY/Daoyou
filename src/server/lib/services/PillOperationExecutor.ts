@@ -1,11 +1,12 @@
 import { getOrInitCultivationProgress } from '@server/utils/cultivationUtils';
+import { COMPREHENSION_INSIGHT_CAP } from '@shared/config/cultivationTuning';
 import {
   CULTIVATION_PILL_MAX_QUALITY_BY_REALM,
   getMinimumPillQualityByRealm,
   PILL_TOXICITY_CAP,
   REALM_PILL_USAGE_LIMITS,
 } from '@shared/config/consumableSystem';
-import type { CultivatorDisplayInput } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
+import type { CultivatorDisplayInput } from '@shared/lib/cultivatorDisplay';
 import {
   BODY_CULTIVATION_REALM_REQUIREMENTS,
   BODY_REALM_LABELS,
@@ -250,6 +251,7 @@ function setTrackState(
         ...condition.tracks,
         bodyCultivation: {
           ...bodyCultivation,
+          breakthrough: undefined,
           tracks: {
             ...bodyCultivation.tracks,
             [key]: {
@@ -517,7 +519,7 @@ function applyGainProgressOperation(
           comprehension_insight: Math.max(
             0,
             Math.min(
-              100,
+              COMPREHENSION_INSIGHT_CAP,
               progress.comprehension_insight +
                 Math.max(0, Math.floor(operation.value)),
             ),
@@ -876,6 +878,8 @@ export const PillOperationExecutor = {
           }
           break;
         }
+        case 'gain_beast_cultivation':
+          throw new Error('请在灵兽页选择灵兽后喂养');
         case 'gain_progress': {
           const before = getProgressValue(nextCultivator, operation.target);
           applyGainProgressOperation(nextCultivator, operation);

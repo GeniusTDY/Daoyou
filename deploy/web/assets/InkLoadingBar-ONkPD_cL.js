@@ -1,0 +1,1 @@
+import{t as e}from"./cn-BcQqvKBv.js";import{t}from"./jsx-runtime-BtH0gOTJ.js";var n=t();function r({tone:t=`ink`,size:r=`scene`,immediate:i=!1,className:a}){return(0,n.jsx)(`div`,{"aria-hidden":`true`,className:e(`ink-loading-bar`,!i&&`ink-loading-delay`,a),"data-tone":t,"data-size":r,children:(0,n.jsx)(`span`,{className:`ink-loading-bar__segment`})})}export{r as t};

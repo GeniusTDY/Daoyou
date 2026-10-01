@@ -1,0 +1,1 @@
+import{i as e,t}from"./react-DB-4Zxce.js";import{r as n,x as r}from"./definitions-CFI1yhyw.js";var i=e(t(),1);function a(e,t){let a=(0,i.useMemo)(()=>({status:t}),[t]),o=n(r,a,!!e);return{tasks:o.data,loading:o.loading,error:o.error,reload:o.reload}}export{a as t};

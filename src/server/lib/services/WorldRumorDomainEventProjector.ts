@@ -3,6 +3,8 @@ import {
   isDomainEventType,
   type DomainEventEnvelope,
 } from '@shared/contracts/domainEvents';
+import { alchemyShowcaseSnapshot } from '@shared/items/alchemyShowcase';
+import { forgingShowcaseSnapshot } from '@shared/items/forgingShowcase';
 import { QUALITY_ORDER } from '@shared/types/constants';
 import type { WorldChatPayload } from '@shared/types/world-chat';
 import type { FeatureCommandResult } from './CommandExecutors';
@@ -36,19 +38,40 @@ export async function projectWorldRumorDomainEvent(
   }
 
   if (isDomainEventType(event, 'craft.item.created')) {
+    if (event.data.itemType === 'consumable') {
+      const snapshot = alchemyShowcaseSnapshot(
+        event.data.outputs ?? [event.data.snapshot],
+      );
+      if (!snapshot) return ignored();
+      const text = `由${event.data.cultivatorName}炼成，品相完美，药香化霞，足令诸修侧目。`;
+      return createRumor(event, event.data.userId, 'item_showcase', text, {
+        version: 1,
+        snapshot,
+        text,
+      });
+    }
     if (QUALITY_ORDER[event.data.quality] < QUALITY_ORDER['天品']) {
       return ignored();
     }
-    const noun = event.data.itemType === 'consumable' ? '丹品' : '品阶';
-    const flourish =
-      event.data.itemType === 'consumable' ? '药香化霞' : '灵韵自生';
-    const text = `由${event.data.cultivatorName}炼成，${noun}已入${event.data.quality}，${flourish}，足令诸修侧目。`;
+    const text = `由${event.data.cultivatorName}炼成，品阶已入${event.data.quality}，灵韵自生，足令诸修侧目。`;
+    return createRumor(event, event.data.userId, 'text', text, { text });
+  }
+
+  if (isDomainEventType(event, 'equipment.forged')) {
+    const snapshot = forgingShowcaseSnapshot(event.data.equipment);
+    if (!snapshot) return ignored();
+    const special = [
+      event.data.equipment.artId ? '器诀' : null,
+      event.data.equipment.essenceIds.length ? '器蕴' : null,
+    ]
+      .filter(Boolean)
+      .join('与');
+    const text = `由${event.data.cultivatorName}炼成，天生${special}，灵韵自生，足令诸修侧目。`;
     return createRumor(event, event.data.userId, 'item_showcase', text, {
-      itemType: event.data.itemType,
-      itemId: event.data.itemId,
-      snapshot: event.data.snapshot,
+      version: 1,
+      snapshot,
       text,
-    } as WorldChatPayload);
+    });
   }
 
   if (isDomainEventType(event, 'market.material.revealed')) {
@@ -56,30 +79,7 @@ export async function projectWorldRumorDomainEvent(
       return ignored();
     }
     const text = `鉴宝司金光冲霄，${event.data.cultivatorName}鉴出${event.data.quality}「${event.data.materialName}」，天降异象，诸界皆闻。`;
-    return createRumor(event, event.data.userId, 'item_showcase', text, {
-      itemType: 'material',
-      itemId: event.data.materialId,
-      snapshot: event.data.snapshot,
-      text,
-    } as WorldChatPayload);
-  }
-
-  if (isDomainEventType(event, 'bet-battle.created')) {
-    const text = event.data.taunt
-      ? `${event.data.cultivatorName}在赌战台放话：${event.data.taunt} 有胆便来应战！`
-      : `${event.data.cultivatorName}在赌战台摆下战帖，静候各路道友应战！`;
-    return createRumor(event, event.data.userId, 'duel_invite', text, {
-      battleId: event.data.battleId,
-      routePath: '/game/bet-battle',
-      taunt: event.data.taunt,
-      expiresAt: undefined,
-    });
-  }
-
-  if (isDomainEventType(event, 'bet-battle.settled')) {
-    return createRumor(event, event.data.userId, 'text', event.data.rumor, {
-      text: event.data.rumor,
-    });
+    return createRumor(event, event.data.userId, 'text', text, { text });
   }
 
   if (isDomainEventType(event, 'ranking.position.changed')) {
@@ -92,6 +92,19 @@ export async function projectWorldRumorDomainEvent(
     return createRumor(event, event.data.userId, 'text', text, { text });
   }
 
+  if (isDomainEventType(event, 'beast.exceptional.acquired')) {
+    const { beast, cultivatorName, source } = event.data;
+    const text =
+      source === 'fusion'
+        ? `${cultivatorName}融合出身怀${beast.skills.length}项技能的灵兽，奇缘传遍诸界。`
+        : `${cultivatorName}捕获变异灵兽，异相惊动诸界。`;
+    return createRumor(event, event.data.userId, 'beast_showcase', text, {
+      version: 1,
+      beast,
+      text,
+    });
+  }
+
   throw new Error(`世界传闻投影不支持领域事件: ${event.type}`);
 }
 
@@ -102,7 +115,7 @@ function ignored(): RumorProjectionResult {
 async function createRumor(
   event: DomainEventEnvelope,
   senderUserId: string,
-  messageType: 'text' | 'item_showcase' | 'duel_invite',
+  messageType: 'text' | 'item_showcase' | 'beast_showcase',
   text: string,
   payload: WorldChatPayload,
 ): Promise<RumorProjectionResult> {

@@ -1,24 +1,12 @@
-import { InkBadge } from '@app/components/ui';
+import { ItemSlot } from '@app/components/feature/items/ItemSlot';
+import type { DisplayItem } from '@app/components/feature/items/itemPresentation';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkCard } from '@app/components/ui/InkCard';
 import { InkTag } from '@app/components/ui/InkTag';
 import type { ResourceOperation } from '@shared/engine/resource/types';
 import type { DungeonSettlement as DungeonSettlementType } from '@shared/lib/dungeon/types';
-import { Quality } from '@shared/types/constants';
-import type { Material } from '@shared/types/cultivator';
-import {
-  getMaterialTypeLabel,
-  getResourceTypeInfo,
-} from '@shared/lib/gameConceptDisplay';
-
-interface DisplayMaterial {
-  name: string;
-  quantity: number;
-  rank?: Quality;
-  element?: string;
-  type?: string;
-  description?: string;
-}
+import { getResourceTypeInfo } from '@shared/lib/gameConceptDisplay';
+import { dungeonRewardItemName } from '@shared/rewards/dungeon';
 
 interface DungeonSettlementProps {
   settlement: DungeonSettlementType | undefined;
@@ -67,52 +55,19 @@ export function DungeonSettlement({
     }))
     .filter((item) => item.value > 0);
 
-  const materialDrops = realGains
-    .filter((gain) => gain.type === 'material')
-    .reduce<DisplayMaterial[]>((acc, gain) => {
-      const data = (gain.data ?? {}) as Partial<Material>;
-      const name = gain.name || data.name || '无名材料';
-      const rank = data.rank;
-      const element = data.element;
-      const type = data.type;
-      const quantity = Math.max(1, data.quantity ?? gain.value ?? 1);
-      const existing = acc.find(
-        (item) =>
-          item.name === name &&
-          item.rank === rank &&
-          item.element === element &&
-          item.type === type,
-      );
-
-      if (existing) {
-        existing.quantity += quantity;
-      } else {
-        acc.push({
-          name,
-          quantity,
-          rank,
-          element,
-          type,
-          description: data.description,
-        });
-      }
-
-      return acc;
-    }, []);
-
-  const displayedMaterials: DisplayMaterial[] =
-    materialDrops.length > 0
-      ? materialDrops
-      : (settlement?.settlement?.reward_blueprints || [])
-          .filter((item) => item.name || item.description)
-          .map((item) => ({
-            name: item.name || '无名材料',
-            quantity: 1,
-            rank: undefined,
-            element: item.element,
-            type: item.material_type,
-            description: item.description,
-          }));
+  const grouped = new Map<string, DisplayItem>();
+  for (const item of settlement?.inventoryRewards ?? []) {
+    const key = JSON.stringify([item.definitionId, item.instanceData]);
+    const existing = grouped.get(key);
+    if (existing) existing.quantity += item.quantity;
+    else
+      grouped.set(key, {
+        definitionId: item.definitionId,
+        instanceData: item.instanceData ?? null,
+        name: dungeonRewardItemName(item),
+        quantity: item.quantity,
+      });
+  }
 
   return (
     <InkCard className="space-y-5 overflow-hidden p-4">
@@ -140,7 +95,7 @@ export function DungeonSettlement({
       </div>
 
       <p className="text-ink/80 leading-relaxed">
-        {settlement?.ending_narrative || '此行尘埃落定，且看所得机缘。'}
+        {settlement?.ending_narrative || '探索已结束。'}
       </p>
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -166,47 +121,21 @@ export function DungeonSettlement({
       </div>
 
       <div className="space-y-2">
-        <div className="text-sm font-medium">机缘灵材</div>
-        {displayedMaterials.length > 0 ? (
-          <div className="space-y-2">
-            {displayedMaterials.map((item, index) => (
-              <div
-                key={`${item.name}-${index}`}
-                className="bg-ink/5 border-ink/10 border px-3 py-2"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="font-medium">{item.name}</div>
-                    <div className="text-ink-secondary mt-1 text-xs">
-                      {[item.element ? `五行：${item.element}` : null]
-                        .filter(Boolean)
-                        .join(' · ')}
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    {item.rank ? (
-                      <InkBadge tier={item.rank as Quality}>
-                        {getMaterialTypeLabel(item.type as Material['type'])}
-                      </InkBadge>
-                    ) : (
-                      <span className="text-ink-secondary border-ink/20 border px-2 py-0.5 text-xs font-medium">
-                        未鉴品
-                      </span>
-                    )}
-                    <span className="text-crimson text-sm font-semibold">
-                      数量 x{item.quantity}
-                    </span>
-                  </div>
-                </div>
-                <div className="text-ink-secondary mt-2 text-xs leading-relaxed">
-                  描述：{item.description || '此物灵机晦暗，暂难窥其全貌。'}
-                </div>
-              </div>
+        <div className="text-sm font-medium">所得物品</div>
+        {grouped.size > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {[...grouped].map(([key, item]) => (
+              <ItemSlot
+                key={key}
+                item={item}
+                className="w-20"
+                quantityLabel="奖励"
+              />
             ))}
           </div>
         ) : (
           <div className="text-ink-secondary bg-ink/5 border-ink/15 border border-dashed px-3 py-4 text-sm">
-            此行机缘浅薄，未得可携灵材
+            本次没有获得物品
           </div>
         )}
       </div>
@@ -216,7 +145,7 @@ export function DungeonSettlement({
         variant="primary"
         className="mt-4 block w-full text-center"
       >
-        收入囊中
+        返回洞府
       </InkButton>
     </InkCard>
   );

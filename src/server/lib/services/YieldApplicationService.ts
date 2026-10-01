@@ -1,3 +1,5 @@
+import { findPlayerMutationRequest } from '@server/lib/repositories/playerStateRepository';
+import { describeJournal } from './JournalSettlement';
 import { cultivators } from '@server/lib/drizzle/schema';
 import { createDomainEvent } from '@server/lib/mq/domainEventWriter';
 import { publishTransactionalMessageBestEffort } from '@server/lib/mq/transactionalMessagePublisher';
@@ -7,14 +9,18 @@ import {
   updateSpiritStones,
 } from '@server/lib/services/cultivator/CultivatorStateRepository';
 import { getOrInitCultivationProgress } from '@server/utils/cultivationUtils';
+import { MailInventoryGrantSchema } from '@shared/contracts/mail';
 import type { GeneratedMaterial } from '@shared/engine/material/creation/types';
 import { YieldCalculator } from '@shared/engine/yield/YieldCalculator';
+import { planYieldRewards } from '@shared/rewards/yield';
 import type { RealmStage, RealmType } from '@shared/types/constants';
 import type { CultivationProgress } from '@shared/types/cultivator';
 import { and, eq } from 'drizzle-orm';
-import { randomUUID } from 'node:crypto';
 import { getExecutor } from '../drizzle/db';
 import { playerCommandExecutor } from './CommandExecutors';
+import { newRewardAttachment } from './MailInventory';
+import { generateYieldMaterials } from './YieldDomainEventProjector';
+import { computeItemLibrarySampleKey } from './itemLibrarySampleKey';
 
 export class YieldCommandError extends Error {
   constructor(
@@ -73,11 +79,25 @@ async function loadYieldFacts(
   };
 }
 
+interface YieldResult {
+  cultivatorName: string;
+  cultivatorRealm: RealmType;
+  amount: number;
+  expGain: number;
+  insightGain: number;
+  materials: GeneratedMaterial[];
+  hours: number;
+  materialCount: number;
+  rewardCount: number;
+}
+
 export async function executeYieldCommand(args: {
   userId: string;
   cultivatorId: string;
+  requestId: string;
 }) {
-  const actionInstanceId = randomUUID();
+  const actionInstanceId = args.requestId;
+  const idempotency = { key: args.requestId, fingerprint: 'yield' };
   let domainEventId: string | undefined;
   const prepared = await withRedisLock(
     {
@@ -88,6 +108,15 @@ export async function executeYieldCommand(args: {
       delayMs: 50,
     },
     async (lease) => {
+      if (await findPlayerMutationRequest(args.cultivatorId, 'yield_claim', args.requestId)) {
+        const committed = await playerCommandExecutor.execute<YieldResult>({
+          coordination: { mode: 'redis', lease },
+          userId: args.userId, cultivatorId: args.cultivatorId,
+          source: 'yield_claim', idempotency,
+          command: async () => { throw new Error('历练执行凭据已失效'); },
+        });
+        return { committed, result: committed.result };
+      }
       const facts = await loadYieldFacts(args.userId, args.cultivatorId);
       if (!facts) {
         throw new YieldCommandError('未找到角色信息', 404);
@@ -107,9 +136,35 @@ export async function executeYieldCommand(args: {
         realmStage: facts.realmStage,
         hoursElapsed,
       });
-      const materialCount =
-        YieldCalculator.calculateMaterialCount(hoursElapsed);
-      const result = {
+      const rewardPlan = planYieldRewards(
+        {
+          realm: facts.realm,
+          realmStage: facts.realmStage,
+          hoursElapsed,
+        },
+        (stream) => {
+          let index = 0;
+          return () =>
+            computeItemLibrarySampleKey(
+              `${actionInstanceId}:${stream}:${index++}`,
+            );
+        },
+      );
+      const materials = await generateYieldMaterials(
+        facts.realm,
+        rewardPlan.materialCount,
+        actionInstanceId,
+        true,
+      );
+      const rewardItems = [
+        ...materials.map((attachment) =>
+          MailInventoryGrantSchema.parse(
+            newRewardAttachment(attachment).inventory,
+          ),
+        ),
+        ...rewardPlan.items,
+      ];
+      const result: YieldResult = {
         cultivatorName: facts.name,
         cultivatorRealm: facts.realm,
         amount:
@@ -124,14 +179,18 @@ export async function executeYieldCommand(args: {
           )?.value ?? 0,
         materials: [] as GeneratedMaterial[],
         hours: hoursElapsed,
-        materialCount,
+        materialCount: rewardPlan.materialCount,
+        rewardCount: rewardPlan.count,
       };
       const committed = await playerCommandExecutor.execute({
         coordination: { mode: 'redis', lease },
         userId: args.userId,
         cultivatorId: args.cultivatorId,
         source: 'yield_claim',
+        requestId: actionInstanceId,
+        idempotency,
         command: async (tx) => {
+          describeJournal(tx, args.cultivatorId, `${Number(hoursElapsed.toFixed(1))}小时`);
           let spiritStones = facts.spiritStones;
           let progress = facts.progress;
           const claimedAt = new Date();
@@ -173,7 +232,7 @@ export async function executeYieldCommand(args: {
             .update(cultivators)
             .set({ last_yield_at: claimedAt })
             .where(eq(cultivators.id, args.cultivatorId));
-          if (materialCount > 0) {
+          if (rewardPlan.count > 0) {
             domainEventId = (
               await createDomainEvent(
                 {
@@ -183,7 +242,12 @@ export async function executeYieldCommand(args: {
                     cultivatorId: args.cultivatorId,
                     actionInstanceId,
                     realm: facts.realm,
-                    materialCount,
+                    materialCount: rewardPlan.count,
+                    rewardSnapshot: {
+                      poolId: rewardPlan.poolId,
+                      poolVersion: rewardPlan.poolVersion,
+                      items: rewardItems,
+                    },
                   },
                   deduplicationKey: `${args.cultivatorId}:yield:${actionInstanceId}`,
                 },
@@ -220,7 +284,7 @@ export async function executeYieldCommand(args: {
           };
         },
       });
-      return { committed, result, realm: facts.realm, materialCount };
+      return { committed, result };
     },
   );
   publishTransactionalMessageBestEffort(domainEventId, {

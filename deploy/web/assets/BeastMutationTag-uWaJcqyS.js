@@ -1,0 +1,1 @@
+import{t as e}from"./jsx-runtime-BtH0gOTJ.js";import{a as t}from"./ui-B5bnkT3O.js";var n=e();function r({isMutant:e}){return e?(0,n.jsx)(t,{className:`shrink-0 text-xs text-violet-600`,children:`变异`}):null}export{r as t};

@@ -1,15 +1,20 @@
 import type {
   WorldChatChannel,
   WorldChatMessageDTO,
-  WorldChatShowcaseItemType,
 } from '@shared/types/world-chat';
 import { createContext } from 'react';
 
-export interface SendWorldChatShowcaseInput {
-  itemType: WorldChatShowcaseItemType;
-  itemId: string;
-  textContent?: string;
-}
+export type SendWorldChatShowcaseInput =
+  | {
+      revision: number;
+      itemId: string;
+      textContent?: string;
+    }
+  | {
+      revision: number;
+      beastId: string;
+      textContent?: string;
+    };
 
 export interface WorldChatFeedModel {
   messages: WorldChatMessageDTO[];

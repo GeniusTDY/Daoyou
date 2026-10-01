@@ -1,7 +1,6 @@
 import { getExecutor, type DbExecutor } from '@server/lib/drizzle/db';
 import * as schema from '@server/lib/drizzle/schema';
-import type { RealmStage, RealmType } from '@shared/types/constants';
-import { and, eq, inArray, notInArray, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 
 export interface CultivatorBreakthroughPillRecord {
   targetRealm: string | null;
@@ -51,38 +50,6 @@ export async function hasCultivatorRecoveryPill(
     );
 
   return Number(result?.count ?? 0) > 0;
-}
-
-export async function findHighestCultivatorTechniqueQuality(
-  cultivatorId: string,
-  q: DbExecutor = getExecutor(),
-): Promise<string | null> {
-  const [row] = await q
-    .select({
-      quality: schema.creationProducts.quality,
-    })
-    .from(schema.creationProducts)
-    .where(
-      and(
-        eq(schema.creationProducts.cultivatorId, cultivatorId),
-        eq(schema.creationProducts.productType, 'gongfa'),
-      ),
-    )
-    .orderBy(
-      sql`case ${schema.creationProducts.quality}
-        when '神品' then 7
-        when '仙品' then 6
-        when '天品' then 5
-        when '地品' then 4
-        when '真品' then 3
-        when '玄品' then 2
-        when '灵品' then 1
-        when '凡品' then 0
-        else -1
-      end desc`,
-    )
-    .limit(1);
-  return row?.quality ?? null;
 }
 
 export async function findActiveCultivatorIdByUserId(
@@ -168,36 +135,6 @@ export async function existsCultivatorById(
     .limit(1);
 
   return rows.length > 0;
-}
-
-export async function sampleActiveCultivatorIds(args: {
-  limit: number;
-  realms?: RealmType[];
-  realmStages?: RealmStage[];
-  excludeIds?: string[];
-  q?: DbExecutor;
-}): Promise<string[]> {
-  const q = args.q ?? getExecutor();
-  const filters = [eq(schema.cultivators.status, 'active')];
-
-  if (args.realms?.length) {
-    filters.push(inArray(schema.cultivators.realm, args.realms));
-  }
-  if (args.realmStages?.length) {
-    filters.push(inArray(schema.cultivators.realm_stage, args.realmStages));
-  }
-  if (args.excludeIds?.length) {
-    filters.push(notInArray(schema.cultivators.id, args.excludeIds));
-  }
-
-  const rows = await q
-    .select({ id: schema.cultivators.id })
-    .from(schema.cultivators)
-    .where(and(...filters))
-    .orderBy(sql`random()`)
-    .limit(Math.max(1, Math.min(100, Math.floor(args.limit))));
-
-  return rows.map((row) => row.id);
 }
 
 export async function hasCultivatorOwnership(

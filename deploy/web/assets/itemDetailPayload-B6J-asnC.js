@@ -1,1 +1,0 @@
-function e(e,t){return{kind:e,item:t}}export{e as t};

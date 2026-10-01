@@ -1,0 +1,1 @@
+import{x as e}from"./pillAppearance-Dev7LKi8.js";import"./store-oWpmw92m.js";import"./special-content-D3UpxUam.js";import{m as t}from"./ItemSlot-BwcQcO3L.js";import{t as n}from"./dungeon-pack-4Z1diHkB.js";n.sources;function r(n){let r=e(n.definitionId);return r.kind===`material`?t(n.instanceData).name:r.name}export{r as t};

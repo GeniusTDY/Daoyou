@@ -1,10 +1,6 @@
-import type {
-  CultivationTechnique,
-  Cultivator,
-  Skill,
-} from '@shared/types/cultivator';
+import { getRealmStageUnallocatedAttributeBudget } from '@shared/config/realmProgression';
 import { generateAiObject } from '@server/utils/aiClient';
-import { BASIC_SKILLS, BASIC_TECHNIQUES } from './config';
+import type { Cultivator } from '@shared/types/cultivator';
 import {
   getCharacterGenerationPrompt,
   getCharacterGenerationUserPrompt,
@@ -20,7 +16,7 @@ export class CharacterGenerator {
   public static async generate(
     userInput: string,
   ): Promise<{ cultivator: Cultivator; balanceNotes: string }> {
-    // 1.  AI
+    // 1.  AI 
     const prompt = getCharacterGenerationPrompt();
     const userPrompt = getCharacterGenerationUserPrompt(userInput);
 
@@ -34,33 +30,20 @@ export class CharacterGenerator {
 
     const data = normalizeCultivatorAIData(aiResponse.output);
 
-    // 2.
+    // 2. 
     const attributes = generateAttributes();
     const spiritual_roots = generateSpiritualRoots(
       data.aptitude_score,
       data.element_preferences,
     );
 
-    
-    const mainRoot = spiritual_roots.reduce((prev, current) =>
-      prev.strength > current.strength ? prev : current,
-    );
-
-    // 3.
-    
-    const cultivation = BASIC_TECHNIQUES[mainRoot.element]();
-    const cultivations: CultivationTechnique[] = [cultivation];
-
-    
-    const skills: Skill[] = [...BASIC_SKILLS[mainRoot.element]];
-
-    // 4.
+    // 4. 
     const age = 14 + Math.floor(Math.random() * 6); // 14-20
     // 100
     const lifespan =
       80 + Math.floor(Math.random() * 20) + (data.aptitude_score > 80 ? 20 : 0);
 
-    //  Cultivator
+    //  Cultivator 
     const cultivator: Cultivator = {
       id: '', // Placeholder
       name: data.name,
@@ -77,12 +60,13 @@ export class CharacterGenerator {
       lifespan,
 
       attributes,
+      unallocated_attribute_points: getRealmStageUnallocatedAttributeBudget(
+        '炼气', '初期',
+      ),
       spiritual_roots,
-      cultivations,
-      skills,
       status: 'active',
       spirit_stones: 0,
-      pre_heaven_fates: [], // 后续流程生成
+      pre_heaven_fates: [], 
       inventory: {
         artifacts: [],
         consumables: [],

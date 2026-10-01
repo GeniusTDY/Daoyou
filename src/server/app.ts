@@ -109,15 +109,6 @@ app.use('*', async (context, next) => {
 });
 
 app.use('/api/*', apiIpRateLimit());
-// TEMP-DEBUG():  auth
-app.use('/api/auth/*', async (context, next) => {
-  const allHeaders: Record<string, string> = {};
-  context.req.raw.headers.forEach((value, key) => {
-    allHeaders[key] = value;
-  });
-  console.log('[auth-hdrs]', JSON.stringify(allHeaders));
-  await next();
-});
 app.all('/api/auth/*', handleAuthRequest);
 app.use('/api/*', jsonError());
 app.use('/internal/*', jsonError());
@@ -131,11 +122,18 @@ app.route('/', serveStaticApp());
 
 //  404
 // API  JSON 404
-app.notFound((c) =>
-  c.req.path.startsWith('/api/')
-    ? c.json({ error: 'Not Found' }, 404)
-    : c.text('404 Not Found', 404),
-);
+app.notFound((c) => {
+  const path = c.req.path;
+  if (
+    path === '/api' ||
+    path.startsWith('/api/') ||
+    path === '/internal' ||
+    path.startsWith('/internal/')
+  ) {
+    return c.json({ success: false, error: '接口不存在' }, 404);
+  }
+  return c.text('404 Not Found', 404);
+});
 
 app.onError((error, c) => {
   const lockErrorResponse = redisLockErrorResponse(error);

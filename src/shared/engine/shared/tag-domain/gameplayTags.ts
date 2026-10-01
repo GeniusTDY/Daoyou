@@ -1,5 +1,5 @@
 /**
- * GameplayTags: creation-v2  battle-v5
+ * GameplayTags:
  *
  *
  * 1.
@@ -19,7 +19,7 @@ export const GameplayTags = {
   },
 
   // =====  =====
-  // STATE CATEGORY CONTROL / IMMUNE
+  // STATE CATEGORY CONTROL / IMMUNE 
   STATUS: {
     ROOT: 'Status',
     IMMUNE: {
@@ -60,7 +60,7 @@ export const GameplayTags = {
   },
 
   // =====  =====
-  // Ability  battle-v5
+  //  Ability 
   // - FUNCTIONdamage/heal/control/buff
   // - CHANNELmagic/physical/true
   // - KINDskill/passive/artifact/gongfa

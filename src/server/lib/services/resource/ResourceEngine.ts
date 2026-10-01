@@ -1,3 +1,4 @@
+import { recordJournalChange } from '../JournalSettlement';
 import type { DbExecutor, DbTransaction } from '@server/lib/drizzle/db';
 import * as schema from '@server/lib/drizzle/schema';
 import {
@@ -12,10 +13,7 @@ import {
   updateReputation,
   updateSpiritStones,
 } from '@server/lib/services/cultivator/CultivatorStateRepository';
-import {
-  calculateSingleArtifactScore,
-  calculateSingleElixirScore,
-} from '@server/utils/rankingUtils';
+import { calculateSingleElixirScore } from '@server/utils/rankingUtils';
 import type {
   ResourceOperation,
   ResourceOperationResult,
@@ -275,6 +273,9 @@ export class ResourceEngine {
               operation.value,
               args.tx,
             );
+            recordJournalChange(args.tx, args.cultivatorId, {
+              kind: 'item', id: `material:${operation.name}`, name: operation.name, amount: -operation.value,
+            });
             settlement.inventoryChanges.push(
               ...changes.map((change) =>
                 change.operation === 'upsert'
@@ -354,6 +355,9 @@ export class ResourceEngine {
               material,
               args.tx,
             );
+            recordJournalChange(args.tx, args.cultivatorId, {
+              kind: 'item', id: item.id ?? `${operation.type}:${item.name}`, name: item.name, amount: operation.value,
+            });
             settlement.inventoryChanges.push({
               kind: 'materials',
               operation: 'upsert',
@@ -370,12 +374,14 @@ export class ResourceEngine {
         case 'artifact':
           if (operation.data && 'name' in operation.data) {
             const artifact = { ...operation.data } as Artifact;
-            artifact.score = calculateSingleArtifactScore(artifact);
             const item = await addArtifactToInventoryInTransaction(
               args.cultivatorId,
               artifact,
               args.tx,
             );
+            recordJournalChange(args.tx, args.cultivatorId, {
+              kind: 'item', id: item.id ?? `${operation.type}:${item.name}`, name: item.name, amount: 1,
+            });
             settlement.inventoryChanges.push({
               kind: 'artifacts',
               operation: 'upsert',
@@ -399,6 +405,9 @@ export class ResourceEngine {
               consumable,
               args.tx,
             );
+            recordJournalChange(args.tx, args.cultivatorId, {
+              kind: 'item', id: item.id ?? `${operation.type}:${item.name}`, name: item.name, amount: operation.value,
+            });
             settlement.inventoryChanges.push({
               kind: 'consumables',
               operation: 'upsert',

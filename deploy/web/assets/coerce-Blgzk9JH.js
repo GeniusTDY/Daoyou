@@ -1,0 +1,1 @@
+import{D as e,n as t}from"./schemas-BfxzgQOQ.js";function n(n){return e(t,n)}export{n as t};

@@ -1,12 +1,6 @@
 import { FateDetailModal } from '@app/components/feature/fates/FateDetailModal';
 import { toFateDisplayModel } from '@app/components/feature/fates/FateDisplayAdapter';
 import { FateEffectInlineList } from '@app/components/feature/fates/FateEffectInlineList';
-import {
-  AbilityMetaLine,
-  AffixInlineList,
-  toProductDisplayModel,
-  type ProductRecordLike,
-} from '@app/components/feature/products';
 import { LingGen } from '@app/components/func/LingGen';
 import { GameLoadingState } from '@app/components/game-shell/GameLoadingState';
 import { InkSection } from '@app/components/layout';
@@ -32,10 +26,13 @@ import {
   type CharacterGenerationQuotaResponse,
   type GenerateCharacterResponse,
 } from '@shared/contracts/character-generation';
-import { getCultivatorDisplayAttributes } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
-import { AttributeType } from '@shared/engine/battle-v5/core/types';
-import { attrLabel } from '@shared/engine/battle-v5/effects/affixText/attributes';
 import { cn } from '@shared/lib/cn';
+import {
+  characterDisplayRows,
+  formatCharacterAttributeValue as formatAttributeValue,
+  formatCharacterAttributeModifier as formatModifier,
+  projectCharacterDisplay,
+} from '@shared/lib/cultivatorDisplay';
 import {
   getGameConceptIcon,
   getResourceLabel,
@@ -49,76 +46,8 @@ const MAX_PROMPT_LENGTH = 200;
 
 const countChars = (input: string): number => Array.from(input).length;
 
-const PRIMARY_ATTR_ORDER: AttributeType[] = [
-  AttributeType.VITALITY,
-  AttributeType.STRENGTH,
-  AttributeType.SPIRIT,
-  AttributeType.ENDURANCE,
-  AttributeType.SPEED,
-  AttributeType.WILLPOWER,
-];
-
-const SECONDARY_ATTR_ORDER: AttributeType[] = [
-  AttributeType.ATK,
-  AttributeType.DEF,
-  AttributeType.MAGIC_ATK,
-  AttributeType.MAGIC_DEF,
-  AttributeType.ACTION_SPEED,
-  AttributeType.CRIT_RATE,
-  AttributeType.CRIT_DAMAGE_MULT,
-  AttributeType.EVASION_RATE,
-  AttributeType.CONTROL_HIT,
-  AttributeType.CONTROL_RESISTANCE,
-  AttributeType.ARMOR_PENETRATION,
-  AttributeType.MAGIC_PENETRATION,
-  AttributeType.CRIT_RESIST,
-  AttributeType.CRIT_DAMAGE_REDUCTION,
-  AttributeType.ACCURACY,
-  AttributeType.HEAL_AMPLIFY,
-];
-
-const PERCENT_ATTRS = new Set<AttributeType>([
-  AttributeType.CRIT_RATE,
-  AttributeType.EVASION_RATE,
-  AttributeType.CONTROL_HIT,
-  AttributeType.CONTROL_RESISTANCE,
-  AttributeType.ARMOR_PENETRATION,
-  AttributeType.MAGIC_PENETRATION,
-  AttributeType.CRIT_RESIST,
-  AttributeType.CRIT_DAMAGE_REDUCTION,
-  AttributeType.ACCURACY,
-  AttributeType.HEAL_AMPLIFY,
-]);
-
-const MULTIPLIER_ATTRS = new Set<AttributeType>([
-  AttributeType.CRIT_DAMAGE_MULT,
-]);
-
 const genesisPanelClassName =
   'border-battle-rule-strong border border-dashed bg-[rgba(248,243,230,0.88)] px-4 py-4 md:px-5 md:py-5';
-
-function formatAttributeValue(attrType: AttributeType, value: number): string {
-  if (PERCENT_ATTRS.has(attrType)) {
-    return `${(value * 100).toFixed(1)}%`;
-  }
-  if (MULTIPLIER_ATTRS.has(attrType)) {
-    return `${value.toFixed(2)}x`;
-  }
-  return Number.isInteger(value) ? `${value}` : value.toFixed(2);
-}
-
-function formatModifier(attrType: AttributeType, value: number): string {
-  const abs = Math.abs(value);
-  const sign = value >= 0 ? '+' : '-';
-  if (PERCENT_ATTRS.has(attrType)) {
-    return `${sign}${(abs * 100).toFixed(1)}%`;
-  }
-  if (MULTIPLIER_ATTRS.has(attrType)) {
-    return `${sign}${abs.toFixed(2)}x`;
-  }
-  const rendered = Number.isInteger(abs) ? `${abs}` : abs.toFixed(2);
-  return `${sign}${rendered}`;
-}
 
 function chunkPairs<T>(items: T[]): T[][] {
   const rows: T[][] = [];
@@ -227,7 +156,7 @@ export default function CreatePage() {
       setAvailableFates(result.data.fates);
       setRemainingRerolls(result.data.remainingRerolls);
       if (result.data.remainingRerolls < 5) {
-        pushToast({ message: '天机变幻，气运已更易。', tone: 'success' });
+        pushToast({ message: '新的先天气运已生成。', tone: 'success' });
       }
     } catch (error) {
       const errorMessage =
@@ -310,7 +239,7 @@ export default function CreatePage() {
       setGenerationQuota(aiResult.data.quota);
 
       pushToast({
-        message: '灵气汇聚，真形初现。正在推演气运……',
+        message: '道身已生成，正在推演先天气运……',
         tone: 'success',
       });
 
@@ -318,7 +247,7 @@ export default function CreatePage() {
       await handleGenerateFates(aiResult.data.tempCultivatorId);
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : '生成角色失败，请检查控制台';
+        error instanceof Error ? error.message : '道身生成失败，请重试。';
       pushToast({ message: errorMessage, tone: 'danger' });
     } finally {
       setIsGenerating(false);
@@ -344,7 +273,7 @@ export default function CreatePage() {
     }
 
     if (selectedFateIndices.length !== 3) {
-      pushToast({ message: '请选择3个先天气运', tone: 'warning' });
+      pushToast({ message: '请选择 3 个先天气运。', tone: 'warning' });
       return;
     }
 
@@ -366,13 +295,13 @@ export default function CreatePage() {
       await consumeResourceMutation(saveResponse);
 
       pushToast({
-        message: '道友真形已落地，山门正在云外相候。',
+        message: '角色已创建，正在打开入世玉简。',
         tone: 'success',
       });
-      navigate('/game/sect/onboarding', { replace: true });
+      navigate('/game/story', { replace: true });
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : '保存角色失败，请检查控制台';
+        error instanceof Error ? error.message : '角色创建失败，请重试。';
       pushToast({ message: errorMessage, tone: 'danger' });
     } finally {
       setIsSaving(false);
@@ -385,7 +314,7 @@ export default function CreatePage() {
     }
 
     if (selectedFateIndices.length !== 3) {
-      pushToast({ message: '请选择3个先天气运', tone: 'warning' });
+      pushToast({ message: '请选择 3 个先天气运。', tone: 'warning' });
       return;
     }
 
@@ -431,26 +360,11 @@ export default function CreatePage() {
 
   const previewStats = useMemo(() => {
     if (!player) return null;
-    const { unit, maxHp, maxMp } = getCultivatorDisplayAttributes(player);
-    const orderedAttributes = [...PRIMARY_ATTR_ORDER, ...SECONDARY_ATTR_ORDER];
-    const displayAttributes = orderedAttributes.map((attrType) => {
-      const baseValue = unit.attributes.getBaseValue(attrType);
-      const finalValue = unit.attributes.getValue(attrType);
-      const modifier = finalValue - baseValue;
-      return {
-        type: attrType,
-        label: attrLabel(attrType),
-        baseValue,
-        finalValue,
-        modifier,
-      };
-    });
-
+    const panel = projectCharacterDisplay(player, null);
     return {
-      maxHp,
-      maxMp,
-      primaryRows: displayAttributes.slice(0, PRIMARY_ATTR_ORDER.length),
-      secondaryAll: displayAttributes.slice(PRIMARY_ATTR_ORDER.length),
+      maxHp: panel.maxHp,
+      maxMp: panel.maxMp,
+      ...characterDisplayRows(player.attributes, panel),
     };
   }, [player]);
 
@@ -545,7 +459,7 @@ export default function CreatePage() {
                 </div>
 
                 {isGeneratingFates ? (
-                  <GameLoadingState message="正在推演天机……" variant="inline" />
+                  <GameLoadingState message="正在生成先天气运……" variant="inline" />
                 ) : availableFates.length > 0 ? (
                   <InkList>
                     {availableFates.map((fate, idx) => {
@@ -787,79 +701,6 @@ export default function CreatePage() {
                   </p>
                 </InkSection>
               </section>
-
-              <section className={genesisPanelClassName}>
-                <InkSection title="【功法】">
-                  {(player.cultivations || []).length === 0 ? (
-                    <InkNotice>尚无功法</InkNotice>
-                  ) : (
-                    <InkList>
-                      {player.cultivations.map((technique) => {
-                        const product = toProductDisplayModel(
-                          technique as ProductRecordLike,
-                        );
-                        return (
-                          <ItemCard
-                            key={technique.id ?? technique.name}
-                            icon="📘"
-                            name={technique.name}
-                            quality={technique.quality}
-                            badgeExtra={
-                              technique.element ? (
-                                <InkBadge tone="default">
-                                  {technique.element}
-                                </InkBadge>
-                              ) : undefined
-                            }
-                            meta={<AffixInlineList affixes={product.affixes} />}
-                            description={technique.description}
-                            layout="col"
-                          />
-                        );
-                      })}
-                    </InkList>
-                  )}
-                </InkSection>
-              </section>
-
-              <section className={genesisPanelClassName}>
-                <InkSection title="【神通】">
-                  {(player.skills || []).length === 0 ? (
-                    <InkNotice>尚无神通</InkNotice>
-                  ) : (
-                    <InkList>
-                      {player.skills.map((skill) => {
-                        const product = toProductDisplayModel(
-                          skill as ProductRecordLike,
-                        );
-                        return (
-                          <ItemCard
-                            key={skill.id ?? skill.name}
-                            icon="📜"
-                            name={skill.name}
-                            quality={skill.quality}
-                            badgeExtra={
-                              <InkBadge tone="default">
-                                {skill.element}
-                              </InkBadge>
-                            }
-                            meta={
-                              <div className="space-y-1">
-                                <AffixInlineList affixes={product.affixes} />
-                                <AbilityMetaLine
-                                  projection={product.projection}
-                                />
-                              </div>
-                            }
-                            description={skill.description}
-                            layout="col"
-                          />
-                        );
-                      })}
-                    </InkList>
-                  )}
-                </InkSection>
-              </section>
             </>
           ) : (
             <section className={genesisPanelClassName}>
@@ -869,7 +710,7 @@ export default function CreatePage() {
               <div className="text-ink mt-3 space-y-3 text-sm leading-7">
                 <p>先以一句心念描出真身，再从天机推演出的命格中择三而取。</p>
                 <p>
-                  生成结果会展示根基属性、灵根、功法与神通预览，确认无误后再正式入世。
+                  生成结果会展示根基属性与灵根，确认无误后再正式入世。
                 </p>
               </div>
             </section>

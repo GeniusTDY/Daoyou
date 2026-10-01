@@ -7,6 +7,7 @@ stripExpCapForStorage,
 syncBottleneckState,
 } from '@server/utils/cultivationUtils';
 import type { CultivatorCondition } from '@shared/types/condition';
+import { COMPREHENSION_INSIGHT_CAP } from '@shared/config/cultivationTuning';
 import {
 RealmStage,
 RealmType
@@ -19,6 +20,7 @@ RetreatRecord
 } from '@shared/types/cultivator';
 import { and,eq,sql } from 'drizzle-orm';
 import {
+db,
 getExecutor,
 type DbExecutor,
 type DbTransaction
@@ -154,18 +156,22 @@ export async function deleteCultivator(
   userId: string,
   cultivatorId: string,
 ): Promise<boolean> {
-  //  onDelete: 'cascade'
-  const deleted = await getExecutor()
-    .delete(schema.cultivators)
-    .where(
-      and(
-        eq(schema.cultivators.id, cultivatorId),
-        eq(schema.cultivators.userId, userId),
-      ),
-    )
-    .returning({ id: schema.cultivators.id });
-
-  return deleted.length > 0;
+  return db.transaction(async (tx) => {
+    const deleted = await tx
+      .delete(schema.cultivators)
+      .where(
+        and(
+          eq(schema.cultivators.id, cultivatorId),
+          eq(schema.cultivators.userId, userId),
+        ),
+      )
+      .returning({ id: schema.cultivators.id });
+    if (!deleted.length) return false;
+    
+    await tx.delete(schema.dailyDivinations)
+      .where(eq(schema.dailyDivinations.cultivatorId, cultivatorId));
+    return true;
+  });
 }
 
 // =====  =====
@@ -173,20 +179,20 @@ export async function deleteCultivator(
 
 const RESOURCE_SAFETY = {
   spirit_stones: {
-    maxDelta: 10_000_000, // 单次最多变动 1000 万灵石
-    ceiling: 1_000_000_000, // 灵石绝对上限 10 亿
+    maxDelta: 10_000_000, //  1000 
+    ceiling: 1_000_000_000, //  10 
   },
   reputation: {
-    maxDelta: 9999, // 单次最多变动 9999 声望
-    ceiling: 1_000_000, // 声望绝对上限 100 万
+    maxDelta: 9999, //  9999 
+    ceiling: 1_000_000, //  100 
   },
   lifespan: {
-    maxDelta: 100_000, // 单次最多变动 10 万年寿元
-    ceiling: 10_000_000, // 寿元绝对上限 1000 万年
+    maxDelta: 100_000, //  10 
+    ceiling: 10_000_000, //  1000 
   },
   cultivation_exp: {
-    maxDelta: 10_000_000, // 单次最多变动 1000 万修为
-    ceiling: 1_000_000_000, // 修为绝对上限 10 亿
+    maxDelta: 10_000_000, //  1000 
+    ceiling: 1_000_000_000, //  10 
   },
 } as const;
 
@@ -319,7 +325,7 @@ export async function updateLifespan(
   const dbInstance = getExecutor(tx);
   await assertCultivatorOwnership(userId, cultivatorId, dbInstance);
 
-  // []
+  // [] 
   const safeDelta = clampResourceDelta(
     delta,
     RESOURCE_SAFETY.lifespan.maxDelta,
@@ -380,7 +386,7 @@ export async function updateCultivationExp(
     throw new Error('修真者不存在');
   }
 
-  //  getOrInitCultivationProgress
+  //  getOrInitCultivationProgress 
   const progress = getOrInitCultivationProgress(
     (cultivatorData[0].cultivation_progress as CultivationProgress | null) ||
       ({} as CultivationProgress),
@@ -388,13 +394,13 @@ export async function updateCultivationExp(
     cultivatorData[0].realm_stage as RealmStage,
   );
 
-  // []
+  // [] 
   const safeExpDelta = clampResourceDelta(
     cultivationExpDelta,
     RESOURCE_SAFETY.cultivation_exp.maxDelta,
   );
 
-  //  exp_cap cap
+  //  exp_cap cap 
   const cultivationExpCeiling = RESOURCE_SAFETY.cultivation_exp.ceiling;
   const newCultivationExp = Math.min(
     progress.cultivation_exp + safeExpDelta,
@@ -411,8 +417,11 @@ export async function updateCultivationExp(
   if (comprehensionInsightDelta !== undefined) {
     newComprehensionInsight = Math.max(
       0,
-      Math.min(100, progress.comprehension_insight + comprehensionInsightDelta),
-    ); //  0-100
+      Math.min(
+        COMPREHENSION_INSIGHT_CAP,
+        progress.comprehension_insight + comprehensionInsightDelta,
+      ),
+    ); //  0-200 
   }
 
   const updatedProgress: CultivationProgress = {

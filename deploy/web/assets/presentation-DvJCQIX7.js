@@ -1,0 +1,1 @@
+var e={ranking:`天骄榜`,hunt:`结伴讨伐`,"arena-sparring":`擂台切磋`};function t(e,t){return![`all`,`random`,`lowestHp`,`lowestDef`].includes(e.targetMode)&&(e.selectableTargetIds.length!==1||e.selectableTargetIds[0]!==t)}export{t as n,e as t};

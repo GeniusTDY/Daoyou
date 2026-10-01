@@ -1,5 +1,3 @@
-import type { Quality } from '@shared/types/constants';
-
 /**
  * ============================================================
  *   ·
@@ -9,7 +7,7 @@ import type { Quality } from '@shared/types/constants';
  *
  *
  *
- *     =  ×  ×  ×
+ *     =  ×  ×
  *          ×  ×
  *     ×1.5 20~50
  *
@@ -17,8 +15,11 @@ import type { Quality } from '@shared/types/constants';
  * ============================================================
  */
 
+
+export const COMPREHENSION_INSIGHT_CAP = 200;
+
 // ──────────────────────────────────────────────
-//  1.
+//  1. 
 // ──────────────────────────────────────────────
 
 /** BASE +  / 100 */
@@ -28,32 +29,7 @@ export const SPIRITUAL_ROOT_BASE = 0.5;
 export const DEFAULT_SPIRITUAL_ROOT_STRENGTH = 50;
 
 // ──────────────────────────────────────────────
-//  2.
-// ──────────────────────────────────────────────
-
-
-export const TECHNIQUE_QUALITY_MULTIPLIERS: Record<Quality, number> = {
-  凡品: 0.8,
-  灵品: 0.85,
-  玄品: 0.9,
-  真品: 0.95,
-  地品: 1.0,
-  天品: 1.05,
-  仙品: 1.1,
-  神品: 1.15,
-};
-
-
-export const NO_TECHNIQUE_MULTIPLIER = 1.0;
-
-
-export const TECHNIQUE_MIN_MULTIPLIER = 0.8;
-
-
-export const TECHNIQUE_FALLBACK_QUALITY: Quality = '凡品';
-
-// ──────────────────────────────────────────────
-//  3.
+//  3. 
 // ──────────────────────────────────────────────
 
 /**
@@ -71,7 +47,7 @@ export const YEARS_MULTIPLIER_BASE = 0.88;
 export const YEARS_MULTIPLIER_SCALE = 0.20;
 
 // ──────────────────────────────────────────────
-//  4.
+//  4. 
 // ──────────────────────────────────────────────
 
 /**
@@ -83,7 +59,7 @@ export const RANDOM_FACTOR_LOW = 0.8;
 export const RANDOM_FACTOR_RANGE = 0.3;
 
 // ──────────────────────────────────────────────
-//  5.
+//  5. 
 // ──────────────────────────────────────────────
 
 
@@ -103,7 +79,7 @@ export const EPIPHANY_INSIGHT_MIN = 20;
 export const EPIPHANY_INSIGHT_RANGE = 31;
 
 // ──────────────────────────────────────────────
-//  6.
+//  6. 
 // ──────────────────────────────────────────────
 
 
@@ -116,7 +92,7 @@ export const MAX_NORMAL_INSIGHT = 40;
 export const NORMAL_INSIGHT_SCALE = 1.8;
 
 // ──────────────────────────────────────────────
-//  7.
+//  7. 
 // ──────────────────────────────────────────────
 
 
@@ -126,7 +102,7 @@ export const BOTTLENECK_THRESHOLD = 70;
 export const BOTTLENECK_EXP_PENALTY = 0.5;
 
 // ──────────────────────────────────────────────
-//  8.
+//  8. 
 // ──────────────────────────────────────────────
 
 
@@ -139,7 +115,7 @@ export const NORMAL_BREAKTHROUGH_THRESHOLD = 80;
 export const PERFECT_BREAKTHROUGH_INSIGHT = 50;
 
 // ──────────────────────────────────────────────
-//  9.
+//  9. 
 // ──────────────────────────────────────────────
 
 /**

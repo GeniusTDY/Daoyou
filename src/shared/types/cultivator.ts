@@ -1,10 +1,12 @@
 // =====  =====
 
-import type { AbilityConfig } from '@shared/engine/creation-v2/contracts/battle';
-import type { AttributeModifierConfig } from '@shared/engine/battle-v5/core/configs';
-import type { ConsumableSpec } from '@shared/types/consumable';
-import type { CultivatorCondition } from '@shared/types/condition';
 import type { CultivatorSectState, PlayerRaceId } from '@shared/engine/sect';
+import type {
+  LegacyAbilitySnapshot as AbilityConfig,
+  LegacyAttributeModifier as AttributeModifierConfig,
+} from '@shared/legacy/products';
+import type { CultivatorCondition } from '@shared/types/condition';
+import type { ConsumableSpec } from '@shared/types/consumable';
 import type {
   ConsumableType,
   ElementType,
@@ -21,12 +23,7 @@ import type {
 /**
  *
  *
- *   battle-v5
- *  AttributeSystem/AttrsStateView  DB
- *
- *
- *   `CultivatorDisplayAdapter.snapshot(cultivator)`
- *   `getCultivatorDisplayAttributes(cultivator)`  AttrsStateView
+ *  V6
  */
 export interface Attributes {
   vitality: number; 
@@ -251,7 +248,7 @@ export interface EquippedItems {
 export interface CultivationProgress {
   cultivation_exp: number; 
   exp_cap: number; 
-  comprehension_insight: number; // 0-100
+  comprehension_insight: number; // 0-200
   breakthrough_failures: number; 
   bottleneck_state: boolean; 
   inner_demon: boolean; // debuff
@@ -290,8 +287,9 @@ export interface Cultivator {
   unallocated_attribute_points?: number;
   spiritual_roots: SpiritualRoot[];
   pre_heaven_fates: PreHeavenFate[];
-  cultivations: CultivationTechnique[];
-  skills: Skill[];
+  
+  cultivations?: CultivationTechnique[];
+  skills?: Skill[];
 
   inventory: Inventory;
   equipped: EquippedItems;
@@ -311,5 +309,4 @@ export interface Cultivator {
 
   // /
   condition?: CultivatorCondition;
-
 }
